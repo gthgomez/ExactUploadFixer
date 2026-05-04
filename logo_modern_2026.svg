@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2979FF;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background: Deep Charcoal Squircle (approximated for SVG) -->
+  <rect width="512" height="512" rx="150" ry="150" fill="#121212"/>
+
+  <!-- Subtle Radial Glow -->
+  <circle cx="256" cy="256" r="200" fill="url(#primaryGradient)" fill-opacity="0.05"/>
+
+  <!-- 
+    Caliper Arrow Symbol (2026 Precision Aesthetic)
+    Composed of two L-shaped calipers pointed upwards to form a stylized arrow.
+  -->
+  <g filter="url(#glow)">
+    <!-- Left Caliper -->
+    <path d="M246,140 L160,240 L210,240 L210,380 L246,380 Z" fill="url(#primaryGradient)" />
+    
+    <!-- Right Caliper (Interlocking) -->
+    <path d="M266,140 L352,240 L302,240 L302,380 L266,380 Z" fill="url(#primaryGradient)" />
+    
+    <!-- Success 'Bit' in the center gap (represents the 'fix' success) -->
+    <rect x="248" y="220" width="16" height="130" rx="8" fill="url(#primaryGradient)" fill-opacity="0.8" />
+  </g>
+
+  <!-- Precision Markings (Ruler/Caliper ticks) -->
+  <g stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2">
+    <line x1="180" y1="260" x2="195" y2="260" />
+    <line x1="185" y1="280" x2="195" y2="280" />
+    <line x1="180" y1="300" x2="195" y2="300" />
+    <line x1="185" y1="320" x2="195" y2="320" />
+    <line x1="180" y1="340" x2="195" y2="340" />
+
+    <line x1="332" y1="260" x2="317" y2="260" />
+    <line x1="327" y1="280" x2="317" y2="280" />
+    <line x1="332" y1="300" x2="317" y2="300" />
+    <line x1="327" y1="320" x2="317" y2="320" />
+    <line x1="332" y1="340" x2="317" y2="340" />
+  </g>
+
+</svg>

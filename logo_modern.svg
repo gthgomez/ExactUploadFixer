@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <radialGradient id="glow" cx="256" cy="256" r="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00E5FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#212121" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background: Charcoal Squircle (approx 30% radius) -->
+  <rect width="512" height="512" rx="150" ry="150" fill="#212121"/>
+  
+  <!-- Subtle Glow -->
+  <circle cx="256" cy="260" r="160" fill="url(#glow)"/>
+
+  <!-- 
+    Refined integrated Glyph (v2) 
+    Scale: Launcher icon is 108dp, this is 512px. Factor = 4.74 approx.
+  -->
+  
+  <!-- Main Arrow Body -->
+  <path d="M256,137 L152,251 L208,251 L208,374 L304,374 L304,251 L360,251 Z" 
+        fill="#FFFFFF"/>
+
+  <!-- Success Check Badge (Vibrant Cyan) -->
+  <path d="M313,303 L341,332 L398,256 L417,275 L341,370 L294,322 Z" 
+        fill="#00E5FF"/>
+
+</svg>

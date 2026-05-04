@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Exact Upload Fixer</string>
+
+    <!-- ── PickScreen ── -->
+    <string name="pick_headline">Make this upload pass.</string>
+    <string name="pick_subtitle">Resize a JPEG to a target size in KB or pixels. Everything stays on your device.</string>
+    <string name="pick_badge_on_device">On-device</string>
+    <string name="pick_badge_jpeg_only">JPEG only</string>
+    <string name="pick_badge_passport_ready">Passport ready</string>
+    <string name="pick_cta">Choose Photo</string>
+    <string name="pick_footer_free">Fix any upload for free</string>
+    <string name="pick_footer_pricing">Free to try. Lifetime purchase unlocks the preset library.</string>
+    <string name="pick_error_jpeg_only">Only JPEG files are supported. Select a .jpg or .jpeg photo.</string>
+
+    <!-- ── EditScreen ── -->
+    <string name="edit_section_custom_size">Custom size</string>
+    <string name="edit_section_presets">Popular presets</string>
+    <string name="edit_size_label">Max File Size (KB)</string>
+    <string name="edit_size_placeholder">e.g. 200</string>
+    <string name="edit_size_suffix">KB</string>
+    <string name="edit_size_helper">Government / visa: 200–240 KB · Job portals: up to 500 KB</string>
+    <string name="edit_chip_200kb">200 KB</string>
+    <string name="edit_chip_240kb">240 KB</string>
+    <string name="edit_chip_500kb">500 KB</string>
+    <string name="edit_dimensions_show">Add Exact Dimensions</string>
+    <string name="edit_dimensions_hide">Hide Dimensions</string>
+    <string name="edit_width_label">Width px</string>
+    <string name="edit_height_label">Height px</string>
+    <string name="edit_dimensions_helper">The image will be scaled to fit inside these dimensions.</string>
+    <string name="edit_note_placeholder">Enter a size above, or pick a preset below.</string>
+    <string name="edit_note_jpeg_preserved">Output stays JPEG — no format change</string>
+    <string name="edit_note_quality_preserved">Quality is preserved as far as the limit allows</string>
+    <string name="edit_presets_locked_hint">Each preset contains the exact requirements for a real portal. Tap to see the lifetime purchase.</string>
+    <string name="edit_processing_label">Optimising…</string>
+    <string name="edit_processing_quality">Optimising — %d%%</string>
+    <string name="edit_cta_fix">Fix Upload</string>
+    <string name="edit_cta_fixing">Fixing…</string>
+    <string name="edit_cancel">Cancel</string>
+
+    <!-- Photo preview -->
+    <string name="preview_title">Selected photo</string>
+    <string name="preview_expand_cd">View full photo</string>
+    <string name="preview_sheet_title">Source Photo</string>
+    <string name="preview_sheet_close">Close</string>
+    <string name="preview_meta_jpeg">JPEG</string>
+
+    <!-- Paywall sheet -->
+    <string name="paywall_headline">Never look this up again</string>
+    <string name="paywall_guarantee">Apply exact upload rules in one tap — no guessing, no rejections.</string>
+    <string name="paywall_body">Buy lifetime access to unlock every preset. Each preset encodes the exact size limit, dimensions, and format for a real system.</string>
+    <string name="paywall_cta">Buy Lifetime Access</string>
+    <string name="paywall_manage">Manage Purchase</string>
+    <string name="paywall_dismiss">Maybe later</string>
+
+    <!-- ── ResultScreen ── -->
+    <string name="result_headline_success">Ready to Upload</string>
+    <string name="result_heavy_compression_tip">Heavy compression — text may blur. Try 240 KB?</string>
+    <string name="result_output_summary_title">Output Summary</string>
+    <string name="result_stat_before_size">Before size</string>
+    <string name="result_stat_before_supporting">Original file</string>
+    <string name="result_stat_after_size">After size</string>
+    <string name="result_stat_after_reduced">Reduced successfully</string>
+    <string name="result_stat_after_no_reduction">No reduction</string>
+    <string name="result_stat_dimensions">Dimensions</string>
+    <string name="result_stat_dimensions_supporting">Pixels</string>
+    <string name="result_stat_compression">Compression</string>
+    <string name="result_compression_high">High</string>
+    <string name="result_compression_balanced">Balanced</string>
+    <string name="result_compression_light">Light</string>
+    <string name="result_compression_supporting">JPEG quality %d</string>
+    <string name="result_requirements_title">Requirements Met</string>
+    <string name="result_requirement_ready">File is ready to upload</string>
+    <string name="result_requirement_size">File size under %d KB</string>
+    <string name="result_requirement_dimensions">Dimensions %1$d × %2$d px</string>
+    <string name="result_fallback_note">Ready. Meets upload requirements.</string>
+    <string name="result_reduction_badge">%d%% smaller</string>
+
+    <!-- Actions panel -->
+    <string name="result_actions_title">Next Step</string>
+    <string name="result_actions_subtitle">Save the fixed JPEG, or share it directly to the app that rejected the original.</string>
+    <string name="result_action_save">Save JPG</string>
+    <string name="result_action_share">Share</string>
+    <string name="result_action_edit_again">Edit Again</string>
+    <string name="result_action_start_over">Start Over</string>
+
+    <!-- Image compare -->
+    <string name="compare_tab_fixed">Fixed</string>
+    <string name="compare_tab_original">Original</string>
+    <string name="compare_label_fixed">Fixed output</string>
+    <string name="compare_label_original">Original reference</string>
+    <string name="compare_toggle_see_fixed">See Fixed</string>
+    <string name="compare_toggle_see_original">See Original</string>
+    <string name="compare_toggle_cd">Toggle original and processed</string>
+
+    <!-- Snackbar -->
+    <string name="result_save_success">Saved as fixed_%dkb.jpg</string>
+    <string name="result_save_failed">Save failed — try again</string>
+    <string name="result_snackbar_open">Open</string>
+
+    <!-- Failure titles -->
+    <string name="failure_title_compression">Size Limit Unreachable</string>
+    <string name="failure_title_mime">Wrong File Type</string>
+    <string name="failure_title_timeout">Processing Took Too Long</string>
+    <string name="failure_title_decode">Could Not Read File</string>
+    <string name="failure_title_memory">Image Too Large</string>
+    <string name="failure_title_dimensions">Invalid Dimensions</string>
+    <string name="failure_title_input">Invalid Input</string>
+    <string name="failure_title_save">Save Failed</string>
+    <string name="failure_title_unknown">Something Went Wrong</string>
+
+    <!-- Failure details -->
+    <string name="failure_detail_compression">The image cannot be compressed to this size without becoming unusable.</string>
+    <string name="failure_detail_mime">Only JPEG files are supported. The selected file is a different format.</string>
+    <string name="failure_detail_timeout">Processing this image took longer than the safe limit allows.</string>
+    <string name="failure_detail_decode">The file could not be decoded. It may be corrupt or incomplete.</string>
+    <string name="failure_detail_memory">This image is too large to process on this device.</string>
+    <string name="failure_detail_dimensions">Enter both width and height, or leave both empty.</string>
+    <string name="failure_detail_input">Check the values you entered and try again.</string>
+    <string name="failure_detail_save">The file was processed but could not be saved.</string>
+    <string name="failure_detail_unknown">An unexpected error occurred.</string>
+
+    <!-- Failure remedies -->
+    <string name="failure_remedy_compression">Try raising the size limit, or entering smaller dimensions.</string>
+    <string name="failure_remedy_mime">Select a JPEG file (.jpg or .jpeg).</string>
+    <string name="failure_remedy_timeout">Try a smaller image, or raise the size limit to reduce processing work.</string>
+    <string name="failure_remedy_decode">Try selecting the file again. If it fails again, the file may be damaged.</string>
+    <string name="failure_remedy_memory">Try a lower-resolution version of the image.</string>
+    <string name="failure_remedy_dimensions">Fill in both width and height, or clear both to skip dimension resizing.</string>
+    <string name="failure_remedy_save">Choose a writable location — try Downloads or Documents.</string>
+    <string name="failure_action_back">Go Back and Adjust</string>
+
+    <!-- Step indicator -->
+    <string name="step_pick">Pick</string>
+    <string name="step_set">Set</string>
+    <string name="step_ready">Ready</string>
+    <string name="step_indicator_cd">Step %d of 3</string>
+</resources>
