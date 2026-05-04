@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Monochrome version of the precision launcher mark. -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M22.4,35.0 L22.4,22.4 L35.0,22.4" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M73.1,22.4 L85.7,22.4 L85.7,35.0" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M22.4,73.1 L22.4,85.7 L35.0,85.7" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M73.1,85.7 L85.7,85.7 L85.7,73.1" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M54.0,75.1 L54.0,32.9" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M43.5,43.5 L54.0,32.9 L64.5,43.5" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M78.1,82.2 L84.4,88.6 L94.9,75.9" />
+</vector>

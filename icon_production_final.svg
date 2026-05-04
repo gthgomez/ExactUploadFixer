@@ -1,0 +1,35 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer 1: Background -->
+  <!-- F7F9FC (soft white) provides a clean, premium base structure -->
+  <rect width="1024" height="1024" fill="#F7F9FC"/>
+
+  <!-- Layer 2: Frame (Constraint Box) -->
+  <!-- Primary Blue (#2563EB). Thicker stroke (48px). Sharp, precise corner crops. -->
+  <g stroke="#2563EB" stroke-width="48" stroke-linecap="square" stroke-linejoin="miter" fill="none">
+    <!-- Top Left -->
+    <path d="M212,332 L212,212 L332,212" />
+    <!-- Top Right -->
+    <path d="M692,212 L812,212 L812,332" />
+    <!-- Bottom Left -->
+    <path d="M212,692 L212,812 L332,812" />
+    <!-- Bottom Right -->
+    <path d="M692,812 L812,812 L812,692" />
+  </g>
+
+  <!-- Layer 3: Arrow (Upload Action) -->
+  <!-- Head uses Primary (#2563EB), Shaft uses Accent (#38BDF8). Thinner stroke (32px). -->
+  <g stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Arrow Shaft (Accent Highlight) -->
+    <path d="M512,712 L512,312" stroke="#38BDF8" />
+    <!-- Arrow Head (Primary Blue) -->
+    <path d="M412,412 L512,312 L612,412" stroke="#2563EB" />
+  </g>
+
+  <!-- Layer 4: Checkmark Integration Mask -->
+  <!-- Creates a precise 16px safety gap (64 stroke - 32 inner) to detach checkmark from the frame structurally without breaking the flat design. -->
+  <path d="M740,780 L800,840 L900,720" stroke="#F7F9FC" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- Layer 5: Checkmark (Success Validation) -->
+  <!-- Success Green (#16A34A). Matches arrow thickness (32px). -->
+  <path d="M740,780 L800,840 L900,720" stroke="#16A34A" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+</svg>

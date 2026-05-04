@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider path config. Scope is the exports/ subdirectory only —
+    not the entire cache dir. Minimum required exposure surface.
+-->
+<paths>
+    <cache-path
+        name="shared_exports"
+        path="exports/" />
+</paths>

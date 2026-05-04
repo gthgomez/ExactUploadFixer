@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background: brand teal #005F61, squircle-style corners -->
+  <rect width="512" height="512" rx="115" ry="115" fill="#005F61"/>
+
+  <!-- Upload arrow: arrowhead + shaft (white, filled) -->
+  <!-- Safe-zone content: arrow tip at y=156, base at y=270, shaft bottom at y=370 -->
+  <path d="M171,270 L213,270 L213,370 L299,370 L299,270 L341,270 L256,156 Z"
+        fill="#FFFFFF"/>
+
+  <!-- Baseline bar -->
+  <rect x="171" y="389" width="170" height="26" rx="10" fill="#FFFFFF"/>
+
+  <!--
+    Success badge: white circle, top-right.
+    Center (360,147) radius 47 — maps to 108dp badge at center (76,31) r=10.
+    Top edge at y=100 ≈ safe-zone boundary (y=99.6 in 512 scale).
+    No overlap: arrow right edge at badge height is x≈249, badge left edge is x=313.
+  -->
+  <circle cx="360" cy="147" r="47" fill="#FFFFFF"/>
+
+  <!-- Checkmark inside badge (success green #1A7A2E) -->
+  <path d="M335,147 L352,165 L392,119"
+        stroke="#1A7A2E"
+        stroke-width="14"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+</svg>
