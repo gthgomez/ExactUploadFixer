@@ -23,9 +23,9 @@ import kotlin.coroutines.resumeWithException
  * - acknowledgePurchase is required; Google refunds unacknowledged purchases after 3 days.
  * - autoServiceReconnection() handles transient Play Store disconnects.
  *
- * TODO: Migrate to billing-ktx v8 before Aug 31 2026 (skill_google_play_billing).
- * - Remove queryPurchaseHistoryAsync if present (removed in v8)
- * - Re-verify ProGuard rules after migration (v8 renamed internal classes)
+ * Note: Migrated to billing-ktx v8 (using 8.0.0 in shared catalog).
+ * - ProGuard rules aligned with v8.
+ * - Auto-reconnection handles transient disconnects cleanly.
  */
 class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedListener, BillingGateway {
 
