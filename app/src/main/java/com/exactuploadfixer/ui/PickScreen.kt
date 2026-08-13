@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,12 +20,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.exactuploadfixer.R
 import androidx.compose.material3.ColorScheme
+import com.workspace.design.AppPrimaryButton
+
+
+/** Placeholder until a live privacy URL is published — see PRIVACY.md. */
+internal const val TODO_PRIVACY_URL = "https://example.invalid/exact-upload-fixer-privacy"
 
 /** Secondary helper/meta tier — a softer sky-blue for supporting copy. */
 private fun ColorScheme.secondaryHelperText() = primary.copy(alpha = 0.54f)
@@ -32,6 +39,7 @@ private fun ColorScheme.secondaryHelperText() = primary.copy(alpha = 0.54f)
 @Composable
 fun PickScreen(onPhotoPicked: (Uri?) -> Unit, pickError: String? = null) {
     val scrollState = rememberScrollState()
+    val uriHandler = LocalUriHandler.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = onPhotoPicked
@@ -97,7 +105,8 @@ fun PickScreen(onPhotoPicked: (Uri?) -> Unit, pickError: String? = null) {
 
             Spacer(Modifier.height(28.dp))
 
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.pick_cta),
                 onClick = {
                     launcher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -105,15 +114,8 @@ fun PickScreen(onPhotoPicked: (Uri?) -> Unit, pickError: String? = null) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(
-                    stringResource(R.string.pick_cta),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                    .height(56.dp)
+            )
 
             if (pickError != null) {
                 Spacer(Modifier.height(12.dp))
@@ -143,6 +145,13 @@ fun PickScreen(onPhotoPicked: (Uri?) -> Unit, pickError: String? = null) {
                     style = MaterialTheme.typography.labelLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.secondaryHelperText()
+                )
+                Text(
+                    text = stringResource(R.string.pick_privacy_link),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { uriHandler.openUri(TODO_PRIVACY_URL) }
                 )
             }
 

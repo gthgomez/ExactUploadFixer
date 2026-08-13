@@ -14,7 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.exactuploadfixer.ui.ExactUploadFixerApp
 import com.exactuploadfixer.ui.MainViewModel
-import com.exactuploadfixer.ui.theme.ExactUploadFixerTheme
+import com.workspace.design.AppTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
         ExportManager.cleanUpCache(applicationContext)
 
         setContent {
-            ExactUploadFixerTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

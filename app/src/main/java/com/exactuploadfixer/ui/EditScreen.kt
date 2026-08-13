@@ -40,6 +40,15 @@ import coil.compose.AsyncImage
 import com.exactuploadfixer.domain.PRESETS
 import com.exactuploadfixer.domain.Preset
 import kotlin.math.roundToInt
+import com.workspace.design.AppPrimaryButton
+import com.workspace.design.AppNeutralButton
+import com.workspace.design.GlassCard
+import com.workspace.design.GlassSurfaceStyle
+import com.workspace.design.GlassTint
+import com.workspace.design.ConfirmDeleteDialog
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
+
 
 /** Secondary helper/meta tier — a softer sky-blue for supporting copy. */
 private fun ColorScheme.secondaryHelperText() = primary.copy(alpha = 0.54f)
@@ -64,16 +73,19 @@ fun EditScreen(
     onPresetSelected: (Preset) -> Unit,
     onEntitlementRefreshRequested: () -> Unit,
     onProcessClick: () -> Unit,
+    onBuyProClick: (Activity) -> Unit,
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     var showAdvanced by rememberSaveable { mutableStateOf(ui.widthInput.isNotEmpty() || ui.heightInput.isNotEmpty()) }
     var showProSheet by remember { mutableStateOf(false) }
     var showStorePaywall by remember { mutableStateOf(false) }
     var showCustomerCenter by remember { mutableStateOf(false) }
     var showPreviewSheet by remember { mutableStateOf(false) }
+    var showConfirmStartOver by remember { mutableStateOf(false) }
     var selectedPresetForSheet by remember { mutableStateOf<Preset?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val previewSheetState = rememberModalBottomSheetState()
@@ -224,15 +236,12 @@ fun EditScreen(
         }
 
         AnimatedVisibility(visible = showAdvanced) {
-            Surface(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
+                surfaceStyle = GlassSurfaceStyle.Quiet,
+                tint = GlassTint.Neutral
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -363,26 +372,33 @@ fun EditScreen(
             Spacer(Modifier.height(16.dp))
         }
 
+        if (showConfirmStartOver) {
+            ConfirmDeleteDialog(
+                title = stringResource(R.string.discard_dialog_title),
+                message = stringResource(R.string.discard_dialog_message),
+                confirmLabel = stringResource(R.string.discard_dialog_confirm),
+                onConfirm = {
+                    showConfirmStartOver = false
+                    onBack()
+                },
+                onDismiss = { showConfirmStartOver = false }
+            )
+        }
+
         // ── Primary CTA — always dominant ────────────────────────────────
-        Button(
+        AppPrimaryButton(
+            text = if (ui.isProcessing) stringResource(R.string.edit_cta_fixing) else stringResource(R.string.edit_cta_fix),
             onClick = onProcessClick,
             enabled = !ui.isProcessing && ui.maxSizeKbInput.toLongOrNull()?.let { it > 0 } == true,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                text = if (ui.isProcessing) stringResource(R.string.edit_cta_fixing) else stringResource(R.string.edit_cta_fix),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
+                .height(56.dp)
+        )
 
         Spacer(Modifier.height(4.dp))
 
         TextButton(
-            onClick = onBack,
+            onClick = { showConfirmStartOver = true },
             enabled = !ui.isProcessing,
             modifier = Modifier
                 .align(Alignment.Start)
@@ -491,22 +507,16 @@ fun EditScreen(
 
                 Spacer(Modifier.height(2.dp))
 
-                Button(
+                AppPrimaryButton(
+                    text = stringResource(R.string.paywall_cta),
                     onClick = {
                         showProSheet = false
                         showStorePaywall = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.paywall_cta),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                        .height(56.dp)
+                )
 
                 TextButton(onClick = {
                     showProSheet = false
@@ -535,7 +545,12 @@ fun EditScreen(
         showCustomerCenter = showCustomerCenter,
         onDismissPaywall = { showStorePaywall = false },
         onDismissCustomerCenter = { showCustomerCenter = false },
-        onEntitlementChanged = onEntitlementRefreshRequested
+        onEntitlementChanged = onEntitlementRefreshRequested,
+        onRequestPurchase = {
+            (context as? Activity)?.let { activity ->
+                onBuyProClick(activity)
+            }
+        }
     )
 }
 
@@ -549,13 +564,10 @@ private fun InlinePhotoPreview(
 ) {
     if (uri == null) return
 
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
-        tonalElevation = 0.dp,
-        shadowElevation = 1.dp
+        surfaceStyle = GlassSurfaceStyle.Standard,
+        tint = GlassTint.Neutral
     ) {
         Row(
             modifier = Modifier
@@ -638,13 +650,10 @@ private fun ProcessingNote(ui: AppUiState) {
     val accentSurface = Color(0xFFEEF2FF)
     val accentBorder  = Color(0xFF2563EB).copy(alpha = 0.22f)
 
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = accentSurface,
-        border = BorderStroke(1.dp, accentBorder),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+        surfaceStyle = GlassSurfaceStyle.Quiet,
+        tint = GlassTint.Cyan
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -729,11 +738,10 @@ private fun PresetSection(
 
 @Composable
 private fun ProPaywallPresetCard(preset: Preset) {
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.76f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+        surfaceStyle = GlassSurfaceStyle.Standard,
+        tint = GlassTint.Cyan
     ) {
         Column(
             modifier = Modifier.padding(14.dp),

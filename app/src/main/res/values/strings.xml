@@ -11,6 +11,7 @@
     <string name="pick_cta">Choose Photo</string>
     <string name="pick_footer_free">Fix any upload for free</string>
     <string name="pick_footer_pricing">Free to try. Lifetime purchase unlocks the preset library.</string>
+    <string name="pick_privacy_link">Privacy policy</string>
     <string name="pick_error_jpeg_only">Only JPEG files are supported. Select a .jpg or .jpeg photo.</string>
 
     <!-- ── EditScreen ── -->
@@ -135,4 +136,20 @@
     <string name="step_set">Set</string>
     <string name="step_ready">Ready</string>
     <string name="step_indicator_cd">Step %d of 3</string>
+
+    <!-- Discard dialog -->
+    <string name="discard_dialog_title">Discard photo?</string>
+    <string name="discard_dialog_message">This will discard your current inputs and the selected photo.</string>
+    <string name="discard_dialog_confirm">Discard</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Select Photo</string>
+    <string name="onboarding_subtitle_1">Pick the photo that was rejected or that you need to resize.</string>
+    <string name="onboarding_title_2">Set Constraints</string>
+    <string name="onboarding_subtitle_2">Choose a target file size (e.g. under 240 KB) and optionally exact dimensions.</string>
+    <string name="onboarding_title_3">Save and Upload</string>
+    <string name="onboarding_subtitle_3">Save the output and upload it directly. It will meet the requirements.</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_get_started">Get Started</string>
 </resources>
