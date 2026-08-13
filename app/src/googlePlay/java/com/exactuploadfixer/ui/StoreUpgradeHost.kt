@@ -18,19 +18,25 @@ internal fun StoreUpgradeHost(
     showCustomerCenter: Boolean,
     onDismissPaywall: () -> Unit,
     onDismissCustomerCenter: () -> Unit,
-    onEntitlementChanged: () -> Unit
+    onEntitlementChanged: () -> Unit,
+    onRequestPurchase: () -> Unit
 ) {
     if (showPaywall) {
         AlertDialog(
             onDismissRequest = onDismissPaywall,
-            title = { Text("Upgrade unavailable") },
-            text = { Text("Google Play upgrade is disabled in this build while Amazon launch testing is in progress.") },
+            title = { Text("Unlock Premium Presets") },
+            text = { Text("Upgrade to Pro to unlock precise, verified size limits and exact dimensions for Passport, Visa, LinkedIn, and more portal uploads.") },
             confirmButton = {
                 TextButton(onClick = {
-                    onEntitlementChanged()
+                    onRequestPurchase()
                     onDismissPaywall()
                 }) {
-                    Text("OK")
+                    Text("Buy Lifetime Access")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissPaywall) {
+                    Text("Maybe later")
                 }
             }
         )
@@ -39,8 +45,8 @@ internal fun StoreUpgradeHost(
     if (showCustomerCenter) {
         AlertDialog(
             onDismissRequest = onDismissCustomerCenter,
-            title = { Text("Manage purchase unavailable") },
-            text = { Text("Purchase management is not wired for this Google Play build yet.") },
+            title = { Text("Manage purchase") },
+            text = { Text("Manage this lifetime purchase through your Google Play account order history.") },
             confirmButton = {
                 TextButton(onClick = {
                     onEntitlementChanged()

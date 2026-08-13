@@ -2,6 +2,7 @@ package com.exactuploadfixer.ui
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,9 +36,23 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
 
     private val contentResolver = application.contentResolver
+    private val prefs = application.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
 
-    var uiState by mutableStateOf(AppUiState())
+    var uiState by mutableStateOf(
+        AppUiState(
+            screen = if (application.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE).getBoolean("onboarding_completed", false)) {
+                AppScreen.Pick
+            } else {
+                AppScreen.Onboarding
+            }
+        )
+    )
         private set
+
+    fun onOnboardingCompleted() {
+        prefs.edit().putBoolean("onboarding_completed", true).apply()
+        uiState = uiState.copy(screen = AppScreen.Pick)
+    }
 
     private companion object {
         // Matches the engine's bounded search budget so UI progress advances steadily.

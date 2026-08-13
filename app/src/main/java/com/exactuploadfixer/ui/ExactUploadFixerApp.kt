@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.exactuploadfixer.R
+import com.workspace.design.AppTheme
 
 private val TabletContentMaxWidth = 560.dp
 
@@ -33,30 +34,37 @@ private val TabletContentMaxWidth = 560.dp
  */
 @Composable
 fun ExactUploadFixerApp(vm: MainViewModel) {
-    val ui = vm.uiState
+    AppTheme {
+        val ui = vm.uiState
 
-    when (ui.screen) {
-        AppScreen.Pick -> PickScreen(
-            onPhotoPicked = vm::onPhotoPicked,
-            pickError = ui.pickError
-        )
+        when (ui.screen) {
+            AppScreen.Onboarding -> OnboardingScreen(
+                onComplete = vm::onOnboardingCompleted
+            )
 
-        AppScreen.Edit -> EditScreen(
-            ui = ui,
-            onMaxSizeChanged = vm::onMaxSizeChanged,
-            onWidthChanged = vm::onWidthChanged,
-            onHeightChanged = vm::onHeightChanged,
-            onPresetSelected = vm::onPresetSelected,
-            onEntitlementRefreshRequested = vm::refreshBillingEntitlement,
-            onProcessClick = vm::onProcessClick,
-            onBack = vm::onStartOver
-        )
+            AppScreen.Pick -> PickScreen(
+                onPhotoPicked = vm::onPhotoPicked,
+                pickError = ui.pickError
+            )
 
-        AppScreen.Result -> ResultScreen(
-            ui = ui,
-            onBackToEdit = vm::onBackToEdit,
-            onStartOver = vm::onStartOver
-        )
+            AppScreen.Edit -> EditScreen(
+                ui = ui,
+                onMaxSizeChanged = vm::onMaxSizeChanged,
+                onWidthChanged = vm::onWidthChanged,
+                onHeightChanged = vm::onHeightChanged,
+                onPresetSelected = vm::onPresetSelected,
+                onEntitlementRefreshRequested = vm::refreshBillingEntitlement,
+                onProcessClick = vm::onProcessClick,
+                onBuyProClick = vm::buyPro,
+                onBack = vm::onStartOver
+            )
+
+            AppScreen.Result -> ResultScreen(
+                ui = ui,
+                onBackToEdit = vm::onBackToEdit,
+                onStartOver = vm::onStartOver
+            )
+        }
     }
 }
 

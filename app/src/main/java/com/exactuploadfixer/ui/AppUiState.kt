@@ -10,6 +10,7 @@ import com.exactuploadfixer.domain.ProcessedImage
  * Source: ChatGPT Step 4.
  */
 sealed interface AppScreen {
+    data object Onboarding : AppScreen
     data object Pick : AppScreen
     data object Edit : AppScreen
     data object Result : AppScreen

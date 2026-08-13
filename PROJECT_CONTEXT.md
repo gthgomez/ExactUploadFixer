@@ -8,11 +8,12 @@ Parent `Project_Android/PROJECT_CONTEXT.md` provides shared Android workspace ru
 
 ## Startup Sequence
 
-1. Read `C:\Workspace\ENGINEERING.md`.
-2. Read `C:\Workspace\AGENTS.md`.
-3. Read `C:\Workspace\Project_Android\PROJECT_CONTEXT.md`.
-4. Read this file.
-5. Read `QA_CHECKLIST.md` for release/user-flow checks.
+1. Read `AGENTS.md` in this directory — project-local agent guidance.
+2. Read this file (`PROJECT_CONTEXT.md`) — directory map and invariants.
+3. Read `C:\Workspace\Project_Android\PROJECT_CONTEXT.md` — workspace-wide context.
+4. Read `C:\Workspace\Project_Android\CLAUDE.md` — behavioral rules and Android patterns.
+5. Review `C:\Workspace\Project_Android\tasks\lessons.md` if it exists.
+6. Read `QA_CHECKLIST.md` when release or workflow behavior is in scope.
 
 ## Architecture & Invariants
 
@@ -27,8 +28,10 @@ Parent `Project_Android/PROJECT_CONTEXT.md` provides shared Android workspace ru
 
 Run from `C:\Workspace\Project_Android\ExactUploadFixer`.
 
-- Debug build: `.\gradlew.bat :app:assembleDebug`
-- Unit tests: `.\gradlew.bat :app:testDebugUnitTest`
+- Google Play debug build: `.\gradlew.bat :app:assembleGooglePlayDebug`
+- Amazon debug build: `.\gradlew.bat :app:assembleAmazonDebug`
+- Google Play unit tests: `.\gradlew.bat :app:testGooglePlayDebugUnitTest`
+- Amazon unit tests: `.\gradlew.bat :app:testAmazonDebugUnitTest`
 - Google Play release bundle: `.\gradlew.bat :app:bundleGooglePlayRelease`
 - Amazon release APK: `.\gradlew.bat :app:assembleAmazonRelease`
 

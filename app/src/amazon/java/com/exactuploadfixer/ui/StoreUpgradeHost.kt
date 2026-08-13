@@ -26,7 +26,8 @@ internal fun StoreUpgradeHost(
     showCustomerCenter: Boolean,
     onDismissPaywall: () -> Unit,
     onDismissCustomerCenter: () -> Unit,
-    onEntitlementChanged: () -> Unit
+    onEntitlementChanged: () -> Unit,
+    onRequestPurchase: () -> Unit
 ) {
     if (showPaywall) {
         PaywallDialog(

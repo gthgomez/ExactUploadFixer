@@ -13,5 +13,7 @@ dependencyResolutionManagement {
     }
 }
 
+includeBuild("../DesignSystem")
+
 rootProject.name = "ExactUploadFixer"
 include(":app")

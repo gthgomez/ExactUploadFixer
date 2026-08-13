@@ -39,6 +39,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.exactuploadfixer.domain.FixFailure
 import com.exactuploadfixer.export.ExportManager
+import com.workspace.design.AppPrimaryButton
+import com.workspace.design.AppNeutralButton
+import com.workspace.design.GlassCard
+import com.workspace.design.GlassSurfaceStyle
+import com.workspace.design.GlassTint
 
 /** Secondary checklist/meta tier — validation copy steps back from data panel. */
 private fun ColorScheme.secondaryHelperText() = primary.copy(alpha = 0.54f)
@@ -123,13 +128,10 @@ fun ResultScreen(
                 requestedKb = if (ui.selectedPreset == null) ui.maxSizeKbInput.toLongOrNull() else null,
                 presetLabel = ui.selectedPreset?.label
             )
-            Surface(
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFDCFCE7),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF16A34A).copy(alpha = 0.30f)),
-                tonalElevation = 0.dp,
-                shadowElevation = 2.dp
+                surfaceStyle = GlassSurfaceStyle.Standard,
+                tint = GlassTint.Cyan
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -249,13 +251,10 @@ private fun ResultActionPanel(
     onBackToEdit: () -> Unit,
     onStartOver: () -> Unit
 ) {
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.cleanCard(0.84f),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.cleanBorder(0.20f)),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+        surfaceStyle = GlassSurfaceStyle.Standard,
+        tint = GlassTint.Neutral
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
@@ -274,38 +273,22 @@ private fun ResultActionPanel(
             )
 
             // Primary: Save — filled, full-width, dominant
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.result_action_save),
                 onClick = onSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(
-                    Icons.Outlined.SaveAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(stringResource(R.string.result_action_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            }
+                    .height(56.dp)
+            )
 
             // Secondary: Share — outlined
-            OutlinedButton(
+            AppNeutralButton(
+                text = stringResource(R.string.result_action_share),
                 onClick = onShare,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(
-                    Icons.Outlined.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(stringResource(R.string.result_action_share))
-            }
+                    .height(50.dp)
+            )
 
             // Tertiary: text actions
             Spacer(Modifier.height(4.dp))
@@ -432,10 +415,10 @@ private fun FailureState(
 
     Spacer(Modifier.height(40.dp))
 
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.errorContainer,
-        shape = RoundedCornerShape(16.dp)
+        surfaceStyle = GlassSurfaceStyle.Standard,
+        tint = GlassTint.Error
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -459,9 +442,10 @@ private fun FailureState(
 
             if (remedy != null) {
                 Spacer(Modifier.height(4.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(8.dp)
+                GlassCard(
+                    modifier = Modifier.wrapContentSize(),
+                    surfaceStyle = GlassSurfaceStyle.Quiet,
+                    tint = GlassTint.Neutral
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -486,17 +470,11 @@ private fun FailureState(
 
             Spacer(Modifier.height(2.dp))
 
-            Button(
+            AppPrimaryButton(
+                text = stringResource(R.string.failure_action_back),
                 onClick = onBackToEdit,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(stringResource(R.string.failure_action_back), fontWeight = FontWeight.SemiBold)
-            }
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            )
         }
     }
 }
@@ -735,17 +713,10 @@ private fun SummaryStatCard(
     emphasize: Boolean = false,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
-    Surface(
+    GlassCard(
         modifier = modifier,
-        color = if (emphasize) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.cleanCard(0.84f),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(
-            width = if (emphasize) 2.dp else 1.dp,
-            color = if (emphasize) MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
-                    else MaterialTheme.colorScheme.cleanBorder(0.14f)
-        ),
-        shadowElevation = if (emphasize) 2.dp else 0.dp
+        surfaceStyle = if (emphasize) GlassSurfaceStyle.Standard else GlassSurfaceStyle.Quiet,
+        tint = if (emphasize) GlassTint.Cyan else GlassTint.Neutral
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -801,11 +772,10 @@ private fun RequirementsSummary(ui: AppUiState) {
     val requestedW    = if (preset == null) ui.widthInput.toIntOrNull() else null
     val requestedH    = if (preset == null) ui.heightInput.toIntOrNull() else null
 
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.78f),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+        surfaceStyle = GlassSurfaceStyle.Standard,
+        tint = GlassTint.Cyan
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Amazon build: do not imply all data stays on device (RevenueCat/Amazon IAP entitlement checks). -->
+    <string name="pick_subtitle">Resize a JPEG to a target size in KB or pixels. Photos are processed on your device; purchase verification uses Amazon and RevenueCat.</string>
+</resources>

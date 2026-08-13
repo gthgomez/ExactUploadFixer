@@ -1,6 +1,7 @@
 package com.exactuploadfixer.ui
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
@@ -54,12 +55,22 @@ class MainViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        context.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("onboarding_completed", true)
+            .apply()
     }
 
     @After
     fun tearDown() {
         cleanupFiles.forEach { it.delete() }
         cleanupFiles.clear()
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        context.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
         Dispatchers.resetMain()
     }
 
@@ -97,6 +108,45 @@ class MainViewModelTest {
         assertNull(vm.uiState.selectedUri)
         assertNull(vm.uiState.result)
         assertNull(vm.uiState.resultFailure)
+    }
+
+    // ── Onboarding ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `initial state is Onboarding screen when preference is false`() = runTest(testDispatcher) {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        context.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("onboarding_completed", false)
+            .apply()
+
+        val vm = buildVm()
+        advanceUntilIdle()
+
+        assertEquals(AppScreen.Onboarding, vm.uiState.screen)
+    }
+
+    @Test
+    fun `onOnboardingCompleted writes preference and transitions to Pick screen`() = runTest(testDispatcher) {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        context.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("onboarding_completed", false)
+            .apply()
+
+        val vm = buildVm()
+        advanceUntilIdle()
+
+        assertEquals(AppScreen.Onboarding, vm.uiState.screen)
+
+        vm.onOnboardingCompleted()
+        advanceUntilIdle()
+
+        assertEquals(AppScreen.Pick, vm.uiState.screen)
+        assertTrue(
+            context.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
+                .getBoolean("onboarding_completed", false)
+        )
     }
 
     // ── onPhotoPicked ─────────────────────────────────────────────────────────
