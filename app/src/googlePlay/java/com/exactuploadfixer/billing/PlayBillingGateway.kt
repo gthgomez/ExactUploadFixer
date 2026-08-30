@@ -120,8 +120,8 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
         }
     }
 
-    override fun launchPurchase(activity: Activity) {
-        val details = cachedProductDetails ?: return  // not ready — user can retry
+    override fun launchPurchase(activity: Activity): Boolean {
+        val details = cachedProductDetails ?: return false  // not ready — caller should inform the user
 
         val flowParams = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
@@ -134,6 +134,7 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
             .build()
 
         billingClient.launchBillingFlow(activity, flowParams)
+        return true
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {

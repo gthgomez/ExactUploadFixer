@@ -2,6 +2,7 @@ package com.exactuploadfixer.processing
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import kotlin.math.roundToInt
 
 /**
  * Pure bitmap transforms — rotate, center-crop, sample-size calculation.
@@ -10,57 +11,78 @@ import android.graphics.Matrix
 object BitmapTransforms {
 
     /**
-     * Rotates [source] clockwise by [degrees]. Returns source unchanged if degrees == 0f.
+     * Returns true when an EXIF rotation of 90° or 270° (including the mirrored
+     * transpose/transverse cases) swaps the effective width and height.
+     * Must be applied to the decoded bounds BEFORE crop/resize math.
+     */
+    fun orientationSwapsDimensions(rotationDegrees: Float): Boolean =
+        rotationDegrees == 90f || rotationDegrees == 270f
+
+    /**
+     * Applies the full EXIF orientation correction (mirror + clockwise rotation).
+     * Returns source unchanged when the transform is the identity.
      * Recycles source if a new bitmap is created.
      */
-    fun rotate(source: Bitmap, degrees: Float): Bitmap {
-        if (degrees == 0f) return source
-        val matrix = Matrix().apply { postRotate(degrees) }
-        val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
-        if (rotated !== source) source.recycle()
-        return rotated
+    fun applyOrientation(source: Bitmap, transform: ExifTransform): Bitmap {
+        if (!transform.mirrorHorizontal && transform.rotationDegrees == 0f) return source
+
+        val matrix = Matrix()
+        // Order matters: the horizontal flip must be composed with the rotation
+        // so mirrored orientations (2/4/5/7) produce a correct upright image
+        // rather than a mirrored one. Verified by BitmapTransformsExifTest.
+        if (transform.mirrorHorizontal) matrix.postScale(-1f, 1f)
+        if (transform.rotationDegrees != 0f) matrix.postRotate(transform.rotationDegrees)
+
+        val transformed =
+            Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+        if (transformed !== source) source.recycle()
+        return transformed
     }
 
     /**
      * Scale-to-fill then center-crop to exact [targetWidth] × [targetHeight].
      *
+     * Memory-safe: instead of scaling the whole source up to fill and then cropping
+     * (which can allocate an enormous intermediate for extreme aspect ratios — e.g.
+     * a 40,000×40 source to a 400×400 target would build a 16-million-pixel-wide
+     * scaled bitmap and OOM), it crops the source region that maps to the target
+     * under the fill scale, then scales that region to the exact target size.
+     * Intermediates stay bounded by the source and target dimensions.
+     *
      * V1 constraint: center-crop only — no freeform crop UI.
-     * This is intentional; freeform crop adds complexity without fixing the upload blocker.
      */
     fun centerCropTo(source: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
         if (source.width == targetWidth && source.height == targetHeight) return source
 
-        val sourceRatio = source.width.toFloat() / source.height
-        val targetRatio = targetWidth.toFloat() / targetHeight
+        val sw = source.width
+        val sh = source.height
 
-        val (scaledW, scaledH) = if (sourceRatio > targetRatio) {
-            // Wider than target — scale by height, then crop width
-            val h = targetHeight
-            val w = (h * sourceRatio).toInt()
-            w to h
-        } else {
-            // Taller than target — scale by width, then crop height
-            val w = targetWidth
-            val h = (w / sourceRatio).toInt()
-            w to h
-        }
+        // Scale-to-fill factor: how much the source must be scaled so one dimension
+        // exactly covers the target and the other overflows (then center-cropped).
+        val fillScale = maxOf(
+            targetWidth.toFloat() / sw,
+            targetHeight.toFloat() / sh
+        )
 
-        val scaled = if (source.width == scaledW && source.height == scaledH) {
-            source
+        // The source region (centered) that maps onto the target under fillScale.
+        val cropW = (targetWidth / fillScale).coerceIn(1f, sw.toFloat())
+        val cropH = (targetHeight / fillScale).coerceIn(1f, sh.toFloat())
+        val cropWInt = cropW.roundToInt().coerceAtMost(sw)
+        val cropHInt = cropH.roundToInt().coerceAtMost(sh)
+        val x = (sw - cropWInt) / 2
+        val y = (sh - cropHInt) / 2
+
+        val crop = Bitmap.createBitmap(source, x, y, cropWInt, cropHInt)
+        if (crop !== source) source.recycle()
+
+        val result = if (crop.width == targetWidth && crop.height == targetHeight) {
+            crop
         } else {
-            Bitmap.createScaledBitmap(source, scaledW, scaledH, true)
-        }
-        val x = (scaledW - targetWidth) / 2
-        val y = (scaledH - targetHeight) / 2
-        val cropped = if (x == 0 && y == 0 && scaled.width == targetWidth && scaled.height == targetHeight) {
+            val scaled = Bitmap.createScaledBitmap(crop, targetWidth, targetHeight, true)
+            if (scaled !== crop) crop.recycle()
             scaled
-        } else {
-            Bitmap.createBitmap(scaled, x, y, targetWidth, targetHeight)
         }
-
-        if (scaled !== source && scaled !== cropped) scaled.recycle()
-        if (source !== scaled && source !== cropped) source.recycle()
-        return cropped
+        return result
     }
 
     /**

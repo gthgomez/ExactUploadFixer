@@ -73,7 +73,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
                     return
                 }
 
-            val upright = BitmapTransforms.rotate(rawBitmap, sourceInfo.rotationDegrees)
+            val upright = BitmapTransforms.applyOrientation(rawBitmap, sourceInfo.transform)
             rawBitmap = null
 
             val working = if (constraints.hasDimensions) {
@@ -200,17 +200,18 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
         val rawHeight = boundsOptions.outHeight
         if (rawWidth <= 0 || rawHeight <= 0) return null
 
-        val rotation = ExifReader.readRotationDegrees(context, uri)
-        val (effectiveWidth, effectiveHeight) = if (rotation == 90f || rotation == 270f) {
-            rawHeight to rawWidth
-        } else {
-            rawWidth to rawHeight
-        }
+        val transform = ExifReader.readTransform(context, uri)
+        val (effectiveWidth, effectiveHeight) =
+            if (BitmapTransforms.orientationSwapsDimensions(transform.rotationDegrees)) {
+                rawHeight to rawWidth
+            } else {
+                rawWidth to rawHeight
+            }
 
         return SourceInfo(
             effectiveWidth = effectiveWidth,
             effectiveHeight = effectiveHeight,
-            rotationDegrees = rotation
+            transform = transform
         )
     }
 
@@ -308,7 +309,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
     private data class SourceInfo(
         val effectiveWidth: Int,
         val effectiveHeight: Int,
-        val rotationDegrees: Float
+        val transform: ExifTransform
     )
 
     private companion object {

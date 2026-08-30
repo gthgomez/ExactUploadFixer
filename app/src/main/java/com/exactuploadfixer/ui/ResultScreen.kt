@@ -79,6 +79,14 @@ fun ResultScreen(
     val scope = rememberCoroutineScope()
     var showOriginal by remember { mutableStateOf(false) }
 
+    // Resolve strings at composition time (resource reads stay inside Compose so
+    // configuration changes invalidate correctly) — lint: LocalContextGetResourceValueCall.
+    val saveSuccessMessage = processedImage?.let {
+        stringResource(R.string.result_save_success, it.fileSizeBytes / 1024)
+    }
+    val saveFailedMessage = stringResource(R.string.result_save_failed)
+    val snackbarOpenLabel = stringResource(R.string.result_snackbar_open)
+
     val saveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("image/jpeg"),
         onResult = { uri ->
@@ -89,11 +97,11 @@ fun ResultScreen(
                 scope.launch {
                     if (ok) {
                         snackbarHostState.showSnackbar(
-                            context.getString(R.string.result_save_success, processedImage.fileSizeBytes / 1024),
-                            actionLabel = context.getString(R.string.result_snackbar_open)
+                            saveSuccessMessage ?: "",
+                            actionLabel = snackbarOpenLabel
                         )
                     } else {
-                        snackbarHostState.showSnackbar(context.getString(R.string.result_save_failed))
+                        snackbarHostState.showSnackbar(saveFailedMessage)
                     }
                 }
             }
@@ -216,7 +224,11 @@ fun ResultScreen(
 
             // ── Actions ───────────────────────────────────────────────────
             ResultActionPanel(
-                onSave = { saveLauncher.launch("fixed_upload.jpg") },
+                onSave = {
+                    // Suggested filename matches the "Saved as fixed_%dkb.jpg" snackbar copy.
+                    val suggestedName = processedImage.let { "fixed_${it.fileSizeBytes / 1024}kb.jpg" }
+                    saveLauncher.launch(suggestedName)
+                },
                 onShare = {
                     val tmp = ExportManager.createTempFile(context, processedImage.bytes)
                     context.startActivity(

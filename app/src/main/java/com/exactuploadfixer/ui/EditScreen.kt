@@ -47,6 +47,7 @@ import com.workspace.design.GlassSurfaceStyle
 import com.workspace.design.GlassTint
 import com.workspace.design.ConfirmDeleteDialog
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
 
@@ -73,7 +74,7 @@ fun EditScreen(
     onPresetSelected: (Preset) -> Unit,
     onEntitlementRefreshRequested: () -> Unit,
     onProcessClick: () -> Unit,
-    onBuyProClick: (Activity) -> Unit,
+    onBuyProClick: (Activity) -> Boolean,
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -548,7 +549,10 @@ fun EditScreen(
         onEntitlementChanged = onEntitlementRefreshRequested,
         onRequestPurchase = {
             (context as? Activity)?.let { activity ->
-                onBuyProClick(activity)
+                val launched = onBuyProClick(activity)
+                if (!launched) {
+                    Toast.makeText(context, R.string.paywall_not_ready, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     )
