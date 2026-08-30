@@ -71,7 +71,7 @@ class ExactUploadFixerScreenshotTest {
                     onPresetSelected = {},
                     onEntitlementRefreshRequested = {},
                     onProcessClick = {},
-                    onBuyProClick = {},
+                    onBuyProClick = { true },
                     onBack = {}
                 )
             }
@@ -93,7 +93,7 @@ class ExactUploadFixerScreenshotTest {
                     onPresetSelected = {},
                     onEntitlementRefreshRequested = {},
                     onProcessClick = {},
-                    onBuyProClick = {},
+                    onBuyProClick = { true },
                     onBack = {}
                 )
             }
@@ -119,7 +119,7 @@ class ExactUploadFixerScreenshotTest {
                     onPresetSelected = {},
                     onEntitlementRefreshRequested = {},
                     onProcessClick = {},
-                    onBuyProClick = {},
+                    onBuyProClick = { true },
                     onBack = {}
                 )
             }
@@ -145,7 +145,7 @@ class ExactUploadFixerScreenshotTest {
                     onPresetSelected = {},
                     onEntitlementRefreshRequested = {},
                     onProcessClick = {},
-                    onBuyProClick = {},
+                    onBuyProClick = { true },
                     onBack = {}
                 )
             }
@@ -170,7 +170,7 @@ class ExactUploadFixerScreenshotTest {
                     onPresetSelected = {},
                     onEntitlementRefreshRequested = {},
                     onProcessClick = {},
-                    onBuyProClick = {},
+                    onBuyProClick = { true },
                     onBack = {}
                 )
             }

@@ -28,8 +28,12 @@ interface BillingGateway {
      */
     suspend fun refreshEntitlement()
 
-    /** Launch the Play purchase flow. No-op if product details aren't cached yet. */
-    fun launchPurchase(activity: Activity)
+    /**
+     * Launch the store purchase flow. Returns false when the purchase could not
+     * be started (e.g. product details not yet cached, store unavailable) so the
+     * caller can surface feedback instead of silently doing nothing.
+     */
+    fun launchPurchase(activity: Activity): Boolean
 
     /** End the BillingClient connection. Call from ViewModel.onCleared(). */
     fun dispose()
