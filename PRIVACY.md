@@ -1,7 +1,8 @@
 # Privacy Policy — Exact Upload Fixer
 
-**Last updated:** 2026-08-13  
-**Placeholder URL:** `https://example.invalid/exact-upload-fixer-privacy` (replace before store submission)
+**Last updated:** 2026-08-13
+**Privacy URL in the app:** `https://github.com/gthgomez/ExactUploadFixer/blob/main/PRIVACY.md`
+**Google Play requirement:** replace the repository-hosted URL with a production privacy-policy URL in Play Console before closed testing / production (Data safety form + store listing).
 
 Exact Upload Fixer is published in two store flavors. What stays on your device—and what leaves it—depends on which build you install.
 

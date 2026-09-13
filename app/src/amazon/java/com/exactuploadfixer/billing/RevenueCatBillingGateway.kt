@@ -91,11 +91,13 @@ class RevenueCatBillingGateway(private val appContext: Context) : BillingGateway
 
     /**
      * Launch the Amazon IAP purchase flow for the Pro unlock.
-     * No-op if cachedProPackage is null — offerings not yet loaded. The user
-     * can tap again after the app retries refreshEntitlement() on next onResume.
+     * Returns false when cachedProPackage is null (offerings not yet loaded or
+     * store unavailable) so the caller can surface feedback instead of silently
+     * doing nothing. The user can tap again after the app retries refreshEntitlement()
+     * on next onResume.
      */
-    override fun launchPurchase(activity: Activity) {
-        val pkg = cachedProPackage ?: return
+    override fun launchPurchase(activity: Activity): Boolean {
+        val pkg = cachedProPackage ?: return false
         scope.launch {
             val result = Purchases.sharedInstance.awaitPurchaseResult(
                 PurchaseParams.Builder(activity, pkg).build()
@@ -107,6 +109,7 @@ class RevenueCatBillingGateway(private val appContext: Context) : BillingGateway
             }
             // null result = user cancelled or IAP error — isProUnlocked unchanged
         }
+        return true
     }
 
     /**

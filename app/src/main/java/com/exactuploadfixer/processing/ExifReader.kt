@@ -5,6 +5,19 @@ import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 
 /**
+ * The EXIF orientation correction needed to display a stored image upright.
+ *
+ * [mirrorHorizontal] must be applied BEFORE [rotationDegrees] (a clockwise
+ * rotation). Pure rotations are correct for orientations 3/6/8; the mirrored
+ * orientations (2/4/5/7) require a horizontal flip composed with the rotation —
+ * treating them as a rotation-only would produce a mirrored image.
+ */
+data class ExifTransform(
+    val mirrorHorizontal: Boolean,
+    val rotationDegrees: Float
+)
+
+/**
  * Reads EXIF metadata from a URI safely.
  *
  * Risk addressed: ChatGPT Step 1, Risk #4 — EXIF orientation must be normalized
@@ -13,10 +26,11 @@ import androidx.exifinterface.media.ExifInterface
 object ExifReader {
 
     /**
-     * Returns the clockwise degrees needed to make the image display upright.
-     * Safe default is 0f (no rotation) if EXIF is unreadable.
+     * Returns the full transform (mirror + clockwise rotation) needed to make the
+     * image display upright. Safe default is the identity transform if EXIF is
+     * unreadable or malformed.
      */
-    fun readRotationDegrees(context: Context, uri: Uri): Float {
+    fun readTransform(context: Context, uri: Uri): ExifTransform {
         return try {
             context.contentResolver.openInputStream(uri)?.use { stream ->
                 val exif = ExifInterface(stream)
@@ -26,20 +40,25 @@ object ExifReader {
                         ExifInterface.ORIENTATION_NORMAL
                     )
                 ) {
-                    ExifInterface.ORIENTATION_ROTATE_90,
-                    ExifInterface.ORIENTATION_TRANSPOSE -> 90f
+                    // Mirror-only and rotation-only cases.
+                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> ExifTransform(true, 0f)
+                    ExifInterface.ORIENTATION_ROTATE_180 -> ExifTransform(false, 180f)
+                    ExifInterface.ORIENTATION_ROTATE_90 -> ExifTransform(false, 90f)
+                    ExifInterface.ORIENTATION_ROTATE_270 -> ExifTransform(false, 270f)
 
-                    ExifInterface.ORIENTATION_ROTATE_180,
-                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> 180f
+                    // Mirrored + rotated cases (transpose / transverse).
+                    // Pixel-verified against Skia (BitmapTransformsExifTest): the
+                    // horizontal flip composes with a 270° rotation for TRANSPOSE and
+                    // a 90° rotation for TRANSVERSE.
+                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> ExifTransform(true, 180f)
+                    ExifInterface.ORIENTATION_TRANSPOSE -> ExifTransform(true, 270f)
+                    ExifInterface.ORIENTATION_TRANSVERSE -> ExifTransform(true, 90f)
 
-                    ExifInterface.ORIENTATION_ROTATE_270,
-                    ExifInterface.ORIENTATION_TRANSVERSE -> 270f
-
-                    else -> 0f
+                    else -> ExifTransform(false, 0f)
                 }
-            } ?: 0f
+            } ?: ExifTransform(false, 0f)
         } catch (e: Exception) {
-            0f
+            ExifTransform(false, 0f)
         }
     }
 

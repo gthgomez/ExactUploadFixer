@@ -44,7 +44,6 @@
     <string name="preview_expand_cd">View full photo</string>
     <string name="preview_sheet_title">Source Photo</string>
     <string name="preview_sheet_close">Close</string>
-    <string name="preview_meta_jpeg">JPEG</string>
 
     <!-- Paywall sheet -->
     <string name="paywall_headline">Never look this up again</string>
@@ -53,6 +52,7 @@
     <string name="paywall_cta">Buy Lifetime Access</string>
     <string name="paywall_manage">Manage Purchase</string>
     <string name="paywall_dismiss">Maybe later</string>
+    <string name="paywall_not_ready">Purchase isn\'t available right now. Check your connection and try again.</string>
 
     <!-- ── ResultScreen ── -->
     <string name="result_headline_success">Ready to Upload</string>

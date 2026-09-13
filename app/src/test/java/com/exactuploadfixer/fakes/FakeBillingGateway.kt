@@ -38,7 +38,7 @@ class FakeBillingGateway : BillingGateway {
     }
 
     /** In tests, launchPurchase is a no-op — drive entitlement via simulatePurchase(). */
-    override fun launchPurchase(activity: Activity) = Unit
+    override fun launchPurchase(activity: Activity): Boolean = true
 
     override fun dispose() = Unit
 }

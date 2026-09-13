@@ -2,9 +2,9 @@
 <resources>
     <!-- Window chrome theme for MainActivity. Compose sets its own colours inside.
          windowBackground matches app background (#F8FBFF) to prevent the gray flash
-         on cold start that android:Theme.Material.Light produces before Compose draws. -->
+         on cold start that android:Theme.Material.Light produces before Compose draws.
+         The API 31+ splash-screen background lives in values-v31/themes.xml. -->
     <style name="Theme.ExactUploadFixer" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#F8FBFF</item>
-        <item name="android:windowSplashScreenBackground">#FF2F80ED</item>
     </style>
 </resources>
