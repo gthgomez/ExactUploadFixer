@@ -32,5 +32,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("dev.chrisbanes.haze:haze:1.5.1")
+    // `api` because HazeState is exposed in GlassCard's public signature.
+    api("dev.chrisbanes.haze:haze:1.5.1")
 }

@@ -13,17 +13,11 @@ dependencyResolutionManagement {
     }
 }
 
-// Prefer the in-repo DesignSystem (CI + standalone clone). Fall back to the
-// workspace sibling for local monorepo development.
-val inRepoDesign = file("DesignSystem")
-val siblingDesign = file("../DesignSystem")
-when {
-    inRepoDesign.resolve("build.gradle.kts").isFile -> includeBuild("DesignSystem")
-    siblingDesign.resolve("build.gradle.kts").isFile -> includeBuild("../DesignSystem")
-    else -> throw GradleException(
-        "DesignSystem composite not found. Expected ./DesignSystem or ../DesignSystem."
-    )
-}
+// The vendored in-repo DesignSystem is committed and authoritative, so it is
+// always used. This keeps CI and standalone clones self-contained. The previous
+// "../DesignSystem" sibling fallback was unreachable (the in-repo copy always
+// exists) and has been removed to make the precedence explicit.
+includeBuild("DesignSystem")
 
 rootProject.name = "ExactUploadFixer"
 include(":app")

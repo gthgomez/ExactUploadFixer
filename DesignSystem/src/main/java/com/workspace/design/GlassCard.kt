@@ -24,6 +24,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -176,7 +177,11 @@ fun GlassCard(
 @Composable
 private fun scaleGlassCardPadding(padding: PaddingValues, fontScale: Float): PaddingValues {
     val layoutDirection = LocalLayoutDirection.current
-    // Default GlassCard padding is uniform; scale from one edge for font-scale headroom.
-    val edge = padding.calculateStartPadding(layoutDirection) * fontScale
-    return PaddingValues(edge)
+    // Scale each edge independently so non-uniform PaddingValues are preserved.
+    return PaddingValues(
+        start = padding.calculateStartPadding(layoutDirection) * fontScale,
+        top = padding.calculateTopPadding() * fontScale,
+        end = padding.calculateEndPadding(layoutDirection) * fontScale,
+        bottom = padding.calculateBottomPadding() * fontScale,
+    )
 }
