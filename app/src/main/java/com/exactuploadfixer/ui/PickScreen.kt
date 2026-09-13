@@ -30,8 +30,15 @@ import androidx.compose.material3.ColorScheme
 import com.workspace.design.AppPrimaryButton
 
 
-/** Placeholder until a live privacy URL is published — see PRIVACY.md. */
-internal const val TODO_PRIVACY_URL = "https://example.invalid/exact-upload-fixer-privacy"
+/**
+ * Privacy policy URL shown on the Pick screen.
+ *
+ * Points at the repository's PRIVACY.md (a real, reachable URL) until a
+ * production-hosted privacy policy is published. Google Play requires a
+ * Data Safety / privacy policy URL before closed testing — replace this with
+ * the production URL before the store listing is finalized.
+ */
+internal const val PRIVACY_POLICY_URL = "https://github.com/gthgomez/ExactUploadFixer/blob/main/PRIVACY.md"
 
 /** Secondary helper/meta tier — a softer sky-blue for supporting copy. */
 private fun ColorScheme.secondaryHelperText() = primary.copy(alpha = 0.54f)
@@ -151,7 +158,7 @@ fun PickScreen(onPhotoPicked: (Uri?) -> Unit, pickError: String? = null) {
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { uriHandler.openUri(TODO_PRIVACY_URL) }
+                    modifier = Modifier.clickable { uriHandler.openUri(PRIVACY_POLICY_URL) }
                 )
             }
 

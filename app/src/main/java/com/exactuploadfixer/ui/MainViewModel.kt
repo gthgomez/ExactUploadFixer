@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.exactuploadfixer.billing.BillingGateway
+import com.exactuploadfixer.R
 import com.exactuploadfixer.domain.FixConstraints
 import com.exactuploadfixer.domain.FixResult
 import com.exactuploadfixer.domain.Preset
@@ -97,7 +98,7 @@ class MainViewModel(
         } catch (_: Exception) { false }
 
         if (!isJpeg) {
-            uiState = uiState.copy(pickError = "Only JPEG files are supported. Select a .jpg or .jpeg photo.")
+            uiState = uiState.copy(pickError = getApplication<Application>().getString(R.string.pick_error_jpeg_only))
             return
         }
 
@@ -266,9 +267,7 @@ class MainViewModel(
 
     // ── Billing ──────────────────────────────────────────────────────────────
 
-    fun buyPro(activity: Activity) {
-        billing.launchPurchase(activity)
-    }
+    fun buyPro(activity: Activity): Boolean = billing.launchPurchase(activity)
 
     override fun onCleared() {
         super.onCleared()

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ (API 31+) adds a system splash screen. Set its background to
+         the brand primary so the cold-start splash matches the app theme.
+         Kept in values-v31 because windowSplashScreenBackground is API 31+. -->
+    <style name="Theme.ExactUploadFixer" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F8FBFF</item>
+        <item name="android:windowSplashScreenBackground">#FF2F80ED</item>
+    </style>
+</resources>

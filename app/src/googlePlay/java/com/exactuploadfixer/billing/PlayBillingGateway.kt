@@ -120,8 +120,8 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
         }
     }
 
-    override fun launchPurchase(activity: Activity) {
-        val details = cachedProductDetails ?: return  // not ready — user can retry
+    override fun launchPurchase(activity: Activity): Boolean {
+        val details = cachedProductDetails ?: return false  // not ready — caller should inform the user
 
         val flowParams = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
@@ -133,7 +133,11 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
             )
             .build()
 
-        billingClient.launchBillingFlow(activity, flowParams)
+        // launchBillingFlow returns a BillingResult: OK means the flow was started.
+        // Other codes (e.g. ITEM_UNAVAILABLE, BILLING_UNAVAILABLE) mean nothing was
+        // shown, so report failure and let the caller surface feedback.
+        val result = billingClient.launchBillingFlow(activity, flowParams)
+        return result.responseCode == BillingClient.BillingResponseCode.OK
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
