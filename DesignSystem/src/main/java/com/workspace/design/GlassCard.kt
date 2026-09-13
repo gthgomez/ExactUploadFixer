@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +23,12 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+
 // Tint variants map to the brand hierarchy: cyan leads, violet adds depth.
 enum class GlassTint {
     Neutral,  // white glass — general purpose
@@ -41,9 +46,6 @@ enum class GlassSurfaceStyle {
 
 @Composable
 fun GlassCard(
-    // Accessibility note: The fixed 16.dp internal padding may clip content
-    // at system font scales above 150%. Consider using a scaled value or
-    // allowing the padding to adapt when testing at 200% font size.
     modifier: Modifier = Modifier,
     tint: GlassTint = GlassTint.Neutral,
     surfaceStyle: GlassSurfaceStyle = GlassSurfaceStyle.Standard,
@@ -56,6 +58,10 @@ fun GlassCard(
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable BoxScope.() -> Unit,
 ) {
+    // Slightly grow card padding at elevated font scales so text is less likely to feel cramped.
+    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.3f)
+    val effectivePadding = scaleGlassCardPadding(contentPadding, fontScale)
+
     val scheme = androidx.compose.material3.MaterialTheme.colorScheme
     val shape = RoundedCornerShape(cornerRadius)
     val isDarkBackdrop = scheme.background.luminance() < 0.45f
@@ -163,7 +169,19 @@ fun GlassCard(
                 }
             } else Modifier
         )
-        .padding(contentPadding)
+        .padding(effectivePadding)
 
     Box(modifier = base, content = content)
+}
+
+@Composable
+private fun scaleGlassCardPadding(padding: PaddingValues, fontScale: Float): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
+    // Scale each edge independently so non-uniform PaddingValues are preserved.
+    return PaddingValues(
+        start = padding.calculateStartPadding(layoutDirection) * fontScale,
+        top = padding.calculateTopPadding() * fontScale,
+        end = padding.calculateEndPadding(layoutDirection) * fontScale,
+        bottom = padding.calculateBottomPadding() * fontScale,
+    )
 }

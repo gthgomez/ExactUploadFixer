@@ -152,8 +152,8 @@ dependencies {
     // Image loading for thumbnail preview
     implementation(libs.coil.compose)
 
-    // Vendored in-repo DesignSystem — GlassCard components, AppTheme, brand tokens
-    implementation(project(":designsystem"))
+    // Workspace shared DesignSystem — GlassCard components, AppTheme, brand tokens
+    implementation("com.workspace:design")
 
     debugImplementation(libs.androidx.ui.tooling)
 
