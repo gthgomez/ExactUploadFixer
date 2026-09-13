@@ -26,11 +26,13 @@ android {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.03.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("dev.chrisbanes.haze:haze:1.5.1")
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.core.ktx)
+    // HazeState appears in GlassCard's public signature, so this must be `api`
+    // for consumers of the DesignSystem to resolve the type.
+    api(libs.haze)
 }

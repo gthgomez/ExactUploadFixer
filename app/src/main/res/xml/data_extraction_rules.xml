@@ -6,7 +6,7 @@
     disables backup on older API levels.
 -->
 <data-extraction-rules>
-    <cloud-backup disableIfNoEncryptionCapabilities="false">
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
         <exclude domain="root" path="." />
     </cloud-backup>
     <device-transfer>
