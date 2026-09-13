@@ -6,24 +6,70 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Theme-dependent design tokens. Supplied through [LocalGlassColors] so consumers
+ * read the tokens for the theme currently in composition instead of a mutable
+ * global that could still hold the previous theme's values on the first frame.
+ */
+@Immutable
+data class GlassColors(
+    val cardBorder: Color,
+    val cardBorderDim: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textDim: Color,
+    val dividerColor: Color,
+    val shimmerEdge: Color,
+    val shimmerMid: Color,
+    val glowCyanAlpha: Float,
+    val glowVioletAlpha: Float,
+    val glowTealAlpha: Float,
+    val navIndicator: Color,
+    val navBorderTop: Color,
+)
+
+private val DarkGlassColors = GlassColors(
+    cardBorder = Color.White.copy(alpha = 0.20f),
+    cardBorderDim = Color.White.copy(alpha = 0.12f),
+    textPrimary = Color.White.copy(alpha = 0.95f),
+    textSecondary = Color.White.copy(alpha = 0.66f),
+    textDim = Color.White.copy(alpha = 0.50f),
+    dividerColor = Color.White.copy(alpha = 0.14f),
+    shimmerEdge = Color.White.copy(alpha = 0.22f),
+    shimmerMid = Color.White.copy(alpha = 0.06f),
+    glowCyanAlpha = 0.24f,
+    glowVioletAlpha = 0.10f,
+    glowTealAlpha = 0.14f,
+    navIndicator = Color(0xFF22D3EE).copy(alpha = 0.24f),
+    navBorderTop = Color.White.copy(alpha = 0.14f),
+)
+
+private val LightGlassColors = GlassColors(
+    cardBorder = Color(0xFF9FB0C7).copy(alpha = 0.34f),
+    cardBorderDim = Color(0xFF94A3B8).copy(alpha = 0.18f),
+    textPrimary = Color(0xFF0F172A),
+    textSecondary = Color(0xFF334155),
+    textDim = Color(0xFF64748B),
+    dividerColor = Color(0xFFCBD5E1).copy(alpha = 0.90f),
+    shimmerEdge = Color.White.copy(alpha = 0.42f),
+    shimmerMid = Color.White.copy(alpha = 0.12f),
+    glowCyanAlpha = 0.14f,
+    glowVioletAlpha = 0.05f,
+    glowTealAlpha = 0.08f,
+    navIndicator = Color(0xFF22D3EE).copy(alpha = 0.18f),
+    navBorderTop = Color(0xFF94A3B8).copy(alpha = 0.24f),
+)
+
+val LocalGlassColors = staticCompositionLocalOf { DarkGlassColors }
+
 object GlassTokens {
-    // Borders — theme-aware so glass stays crisp in both dark and light modes.
-    var CardBorder by mutableStateOf(Color.White.copy(alpha = 0.20f))
-    var CardBorderDim by mutableStateOf(Color.White.copy(alpha = 0.12f))
-
-    // Text — flipped by AppTheme so light mode does not collapse into washed-out white.
-    var TextPrimary by mutableStateOf(Color.White.copy(alpha = 0.95f))
-    var TextSecondary by mutableStateOf(Color.White.copy(alpha = 0.66f))
-    var TextDim by mutableStateOf(Color.White.copy(alpha = 0.50f))
-    var DividerColor by mutableStateOf(Color.White.copy(alpha = 0.14f))
-
-    // Brand accents
+    // Brand accents — theme-independent, safe to read outside composition.
     val Cyan = Color(0xFF06B6D4)
     val CyanBright = Color(0xFF67E8F9)
     val Violet = Color(0xFF7C3AED)
@@ -36,71 +82,88 @@ object GlassTokens {
     val ErrorRed = Color(0xFFFF6B6B)
     val PositiveGreen = Color(0xFF4ADE80)
 
+    // Borders — theme-aware so glass stays crisp in both dark and light modes.
+    val CardBorder: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.cardBorder
+    val CardBorderDim: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.cardBorderDim
+
+    // Text — provided by AppTheme so light mode does not collapse into washed-out white.
+    val TextPrimary: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.textPrimary
+    val TextSecondary: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.textSecondary
+    val TextDim: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.textDim
+    val DividerColor: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.dividerColor
+
     // Top-edge shimmer stops for Hero cards
-    var ShimmerEdge by mutableStateOf(Color.White.copy(alpha = 0.22f))
-    var ShimmerMid by mutableStateOf(Color.White.copy(alpha = 0.06f))
+    val ShimmerEdge: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.shimmerEdge
+    val ShimmerMid: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.shimmerMid
 
     // Ambient background glow alphas
-    var GlowCyanAlpha by mutableStateOf(0.24f)
-    var GlowVioletAlpha by mutableStateOf(0.18f)
-    var GlowTealAlpha by mutableStateOf(0.10f)
+    val GlowCyanAlpha: Float
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.glowCyanAlpha
+    val GlowVioletAlpha: Float
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.glowVioletAlpha
+    val GlowTealAlpha: Float
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.glowTealAlpha
 
     // Nav indicator pill
-    var NavIndicator by mutableStateOf(Color(0xFF22D3EE).copy(alpha = 0.24f))
-    var NavBorderTop by mutableStateOf(Color.White.copy(alpha = 0.14f))
-
-    fun applyForTheme(darkTheme: Boolean) {
-        if (darkTheme) {
-            CardBorder = Color.White.copy(alpha = 0.20f)
-            CardBorderDim = Color.White.copy(alpha = 0.12f)
-            TextPrimary = Color.White.copy(alpha = 0.95f)
-            TextSecondary = Color.White.copy(alpha = 0.66f)
-            TextDim = Color.White.copy(alpha = 0.50f)
-            DividerColor = Color.White.copy(alpha = 0.14f)
-            ShimmerEdge = Color.White.copy(alpha = 0.22f)
-            ShimmerMid = Color.White.copy(alpha = 0.06f)
-            GlowCyanAlpha = 0.24f
-            GlowVioletAlpha = 0.10f
-            GlowTealAlpha = 0.14f
-            NavIndicator = Color(0xFF22D3EE).copy(alpha = 0.24f)
-            NavBorderTop = Color.White.copy(alpha = 0.14f)
-        } else {
-            CardBorder = Color(0xFF9FB0C7).copy(alpha = 0.34f)
-            CardBorderDim = Color(0xFF94A3B8).copy(alpha = 0.18f)
-            TextPrimary = Color(0xFF0F172A)
-            TextSecondary = Color(0xFF334155)
-            TextDim = Color(0xFF64748B)
-            DividerColor = Color(0xFFCBD5E1).copy(alpha = 0.90f)
-            ShimmerEdge = Color.White.copy(alpha = 0.42f)
-            ShimmerMid = Color.White.copy(alpha = 0.12f)
-            GlowCyanAlpha = 0.14f
-            GlowVioletAlpha = 0.05f
-            GlowTealAlpha = 0.08f
-            NavIndicator = Color(0xFF22D3EE).copy(alpha = 0.18f)
-            NavBorderTop = Color(0xFF94A3B8).copy(alpha = 0.24f)
-        }
-    }
+    val NavIndicator: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.navIndicator
+    val NavBorderTop: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGlassColors.current.navBorderTop
 }
 
 private val BrandGlassDark = darkColorScheme(
     primary = GlassTokens.CyanBright,
     onPrimary = Color(0xFF082F49),
     primaryContainer = Color(0xFF155E75),
-    onPrimaryContainer = GlassTokens.TextPrimary,
+    onPrimaryContainer = DarkGlassColors.textPrimary,
     secondary = GlassTokens.Indigo,
     onSecondary = Color.White,
     secondaryContainer = Color(0xFF312E81),
-    onSecondaryContainer = GlassTokens.TextPrimary,
+    onSecondaryContainer = DarkGlassColors.textPrimary,
     tertiary = GlassTokens.Teal,
     onTertiary = Color(0xFF082F49),
     tertiaryContainer = Color(0xFF134E4A),
-    onTertiaryContainer = GlassTokens.TextPrimary,
+    onTertiaryContainer = DarkGlassColors.textPrimary,
     background = Color(0xFF0B1120),
-    onBackground = GlassTokens.TextPrimary,
+    onBackground = DarkGlassColors.textPrimary,
     surface = Color(0xFF111827),
-    onSurface = GlassTokens.TextPrimary,
+    onSurface = DarkGlassColors.textPrimary,
     surfaceVariant = Color(0xFF1F2937),
-    onSurfaceVariant = GlassTokens.TextSecondary,
+    onSurfaceVariant = DarkGlassColors.textSecondary,
     surfaceTint = GlassTokens.CyanBright,
     surfaceContainerLowest = Color(0xFF0F172A),
     surfaceContainerLow = Color(0xFF111827),
@@ -154,12 +217,12 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme: ColorScheme = if (darkTheme) BrandGlassDark else BrandGlassLight
-    SideEffect {
-        GlassTokens.applyForTheme(darkTheme)
-    }
+    val glassColors = if (darkTheme) DarkGlassColors else LightGlassColors
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content
-    )
+    CompositionLocalProvider(LocalGlassColors provides glassColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content
+        )
+    }
 }

@@ -12,6 +12,7 @@ fun ConfirmDeleteDialog(
     title: String = "Delete this entry?",
     message: String = "This cannot be undone.",
     confirmLabel: String = "Delete",
+    dismissLabel: String = "Cancel",
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -26,7 +27,7 @@ fun ConfirmDeleteDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(dismissLabel)
             }
         }
     )
