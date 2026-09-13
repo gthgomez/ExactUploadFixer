@@ -18,7 +18,6 @@ androidxTestExtJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
 roborazzi = "1.52.0" # verified 2026-04-23
 coil = "2.7.0"
-haze = "1.5.1" # glass blur effect used by DesignSystem GlassCard
 
 
 [libraries]
@@ -31,7 +30,6 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
@@ -53,7 +51,6 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 
 
 [plugins]
