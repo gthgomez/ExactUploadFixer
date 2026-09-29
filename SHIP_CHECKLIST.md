@@ -49,8 +49,7 @@ This is the release gate for the current V1 app.
 - [ ] No claim of guaranteed exact byte size
 - [x] Screenshots show the actual value proposition: fix upload rejections
 - [x] Pricing is intentional for the lifetime purchase: USD 2.99
-- [ ] Amazon IAP icon upload uses `store-assets/amazon-iap/exact-upload-fixer-pro-iap-512.png`
-- [ ] Amazon IAP small icon upload uses `store-assets/amazon-iap/exact-upload-fixer-pro-iap-114.png`
+- [ ] Amazon IAP icon + small icon uploaded (source art is kept in private storage, not in this repo)
 - [x] Amazon listing/privacy copy does not claim "no internet" for the RevenueCat build
 - [x] Amazon user data privacy is set to collect/transfer data for purchase entitlement checks
 - [x] Amazon account creation is set to No
