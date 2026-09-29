@@ -19,6 +19,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Add preinstalled sdkmanager to PATH
+        run: echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
       - name: Install required SDK components
         run: |
           sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
