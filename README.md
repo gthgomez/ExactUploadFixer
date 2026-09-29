@@ -2,6 +2,10 @@
 
 Resizes and compresses images to meet exact upload requirements (dimensions + file size). Supports a free manual tier and Pro presets for LinkedIn, State Department DV, and passport photo requirements.
 
+> **Status: proprietary.** This repository is public for source visibility and
+> transparency. It is **not open source** — there is no license grant to reuse,
+> modify, or redistribute this code. See [LICENSE](LICENSE).
+
 **Tech stack:** Kotlin, Jetpack Compose, Material3, Google Play Billing (Amazon IAP for Amazon flavor), ExifInterface, SAF file export.
 
 **Build (Google Play):** `.\gradlew.bat :app:assembleGooglePlayDebug`
