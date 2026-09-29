@@ -13,4 +13,6 @@ Resizes and compresses images to meet exact upload requirements (dimensions + fi
 **Tests (Google Play):** `.\gradlew.bat :app:testGooglePlayDebugUnitTest`
 **Tests (Amazon):** `.\gradlew.bat :app:testAmazonDebugUnitTest`
 
-**Detailed docs:** [CLAUDE.md](CLAUDE.md) | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | [STATUS.md](STATUS.md) | [PRIVACY.md](PRIVACY.md) | [QA_CHECKLIST.md](QA_CHECKLIST.md) | [SHIP_CHECKLIST.md](SHIP_CHECKLIST.md)
+**Project docs:** [STATUS.md](STATUS.md) | [PRIVACY.md](PRIVACY.md) | [QA_CHECKLIST.md](QA_CHECKLIST.md) | [SHIP_CHECKLIST.md](SHIP_CHECKLIST.md)
+
+Internal agent notes (not project documentation): [docs/agent/](docs/agent/)
