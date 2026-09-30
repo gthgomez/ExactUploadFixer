@@ -726,6 +726,12 @@ private fun PresetSection(
             }
         }
 
+        // Unlocked path: show the same preset details (byte limit, sizing
+        // disclaimer, applicationContext, recheck-due flag) as the paywall card.
+        if (ui.isProUnlocked && ui.selectedPreset != null) {
+            ProPaywallPresetCard(preset = requireNotNull(ui.selectedPreset))
+        }
+
         // Context line below chips — only shown when locked
         if (!ui.isProUnlocked) {
             Text(
