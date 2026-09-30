@@ -54,6 +54,7 @@ The app is fully structured as a single-Activity Compose application with dual b
 
 ## Evidence Sources
 
-- [README.md](file:///C:/Workspace/Project_Android/ExactUploadFixer/README.md)
-- [QA_CHECKLIST.md](file:///C:/Workspace/Project_Android/ExactUploadFixer/QA_CHECKLIST.md)
-- [SHIP_CHECKLIST.md](file:///C:/Workspace/Project_Android/ExactUploadFixer/SHIP_CHECKLIST.md)
+- [README.md](README.md)
+- [QA_CHECKLIST.md](QA_CHECKLIST.md)
+- [SHIP_CHECKLIST.md](SHIP_CHECKLIST.md)
+- [docs/engineering/preset-sources.md](docs/engineering/preset-sources.md) — per-preset source, application context, byte-limit interpretation and verification dates

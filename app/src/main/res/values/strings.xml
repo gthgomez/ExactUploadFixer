@@ -7,7 +7,7 @@
     <string name="pick_subtitle">Resize a JPEG to a target size in KB or pixels. Everything stays on your device.</string>
     <string name="pick_badge_on_device">On-device</string>
     <string name="pick_badge_jpeg_only">JPEG only</string>
-    <string name="pick_badge_passport_ready">Passport ready</string>
+    <string name="pick_badge_passport_ready">Passport spec sizes</string>
     <string name="pick_cta">Choose Photo</string>
     <string name="pick_footer_free">Fix any upload for free</string>
     <string name="pick_footer_pricing">Free to try. Lifetime purchase unlocks the preset library.</string>
@@ -20,7 +20,7 @@
     <string name="edit_size_label">Max File Size (KB)</string>
     <string name="edit_size_placeholder">e.g. 200</string>
     <string name="edit_size_suffix">KB</string>
-    <string name="edit_size_helper">Government / visa: 200–240 KB · Job portals: up to 500 KB</string>
+    <string name="edit_size_helper">US visa photo: 240 kB or less · Job portals: up to 500 KB</string>
     <string name="edit_chip_200kb">200 KB</string>
     <string name="edit_chip_240kb">240 KB</string>
     <string name="edit_chip_500kb">500 KB</string>
@@ -32,7 +32,7 @@
     <string name="edit_note_placeholder">Enter a size above, or pick a preset below.</string>
     <string name="edit_note_jpeg_preserved">Output stays JPEG — no format change</string>
     <string name="edit_note_quality_preserved">Quality is preserved as far as the limit allows</string>
-    <string name="edit_presets_locked_hint">Each preset contains the exact requirements for a real portal. Tap to see the lifetime purchase.</string>
+    <string name="edit_presets_locked_hint">Each preset encodes sourced size limits for one specific upload route, with its source and verification date. Tap to see the lifetime purchase.</string>
     <string name="edit_processing_label">Optimising…</string>
     <string name="edit_processing_quality">Optimising — %d%%</string>
     <string name="edit_cta_fix">Fix Upload</string>
@@ -47,8 +47,8 @@
 
     <!-- Paywall sheet -->
     <string name="paywall_headline">Never look this up again</string>
-    <string name="paywall_guarantee">Apply exact upload rules in one tap — no guessing, no rejections.</string>
-    <string name="paywall_body">Buy lifetime access to unlock every preset. Each preset encodes the exact size limit, dimensions, and format for a real system.</string>
+    <string name="paywall_guarantee">Apply exact upload rules in one tap — no guessing. Sizing only; acceptance is always reviewed by the receiving site.</string>
+    <string name="paywall_body">Buy lifetime access to unlock every preset. Each preset encodes size limits and dimensions for one specific upload route, with its cited source and verification date.</string>
     <string name="paywall_cta">Buy Lifetime Access</string>
     <string name="paywall_manage">Manage Purchase</string>
     <string name="paywall_dismiss">Maybe later</string>
@@ -99,6 +99,9 @@
     <string name="result_save_failed">Save failed — try again</string>
     <string name="result_snackbar_open">Open</string>
 
+    <string name="edit_preset_disclaimer">Meets size and dimension targets only — does not validate identity, pose, background, or acceptance.</string>
+    <string name="edit_preset_recheck_due">Source last verified %1$s — recheck recommended</string>
+
     <!-- Failure titles -->
     <string name="failure_title_compression">Size Limit Unreachable</string>
     <string name="failure_title_mime">Wrong File Type</string>
@@ -148,7 +151,7 @@
     <string name="onboarding_title_2">Set Constraints</string>
     <string name="onboarding_subtitle_2">Choose a target file size (e.g. under 240 KB) and optionally exact dimensions.</string>
     <string name="onboarding_title_3">Save and Upload</string>
-    <string name="onboarding_subtitle_3">Save the output and upload it directly. It will meet the requirements.</string>
+    <string name="onboarding_subtitle_3">Save the output and upload it directly. It meets the size and dimension targets you set — acceptance is decided by the receiving site.</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_get_started">Get Started</string>
