@@ -15,4 +15,4 @@ Resizes and compresses images to meet exact upload requirements (dimensions + fi
 
 **Project docs:** [STATUS.md](STATUS.md) | [PRIVACY.md](PRIVACY.md) | [QA_CHECKLIST.md](QA_CHECKLIST.md) | [SHIP_CHECKLIST.md](SHIP_CHECKLIST.md)
 
-Internal agent notes (not project documentation): [docs/agent/](docs/agent/)
+**Agent instructions:** [AGENTS.md](AGENTS.md); technical context in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) (task data).
