@@ -39,7 +39,8 @@ class FixConstraintsTest {
     fun `fromPreset maps all preset fields correctly`() {
         val preset = Preset(
             id = "test", label = "Test", width = 800, height = 600,
-            maxBytes = 512L * 1024L, note = "", lastVerified = "2026-01-01"
+            maxBytes = 512L * 1024L, note = "", lastVerified = "2026-01-01",
+            applicationContext = "Test context"
         )
         val c = FixConstraints.fromPreset(preset)
         assertEquals(preset.maxBytes, c.maxBytes)
