@@ -726,6 +726,12 @@ private fun PresetSection(
             }
         }
 
+        // Unlocked path: show the same preset details (byte limit, sizing
+        // disclaimer, applicationContext, recheck-due flag) as the paywall card.
+        if (ui.isProUnlocked && ui.selectedPreset != null) {
+            ProPaywallPresetCard(preset = requireNotNull(ui.selectedPreset))
+        }
+
         // Context line below chips — only shown when locked
         if (!ui.isProUnlocked) {
             Text(
@@ -758,7 +764,7 @@ private fun ProPaywallPresetCard(preset: Preset) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                "${preset.width} × ${preset.height} px  ·  max ${preset.maxBytes / 1024} KB",
+                "${preset.width} × ${preset.height} px  ·  max ${preset.maxBytes} bytes (${preset.maxBytes / 1024} KiB)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondaryHelperText()
             )
@@ -770,8 +776,28 @@ private fun ProPaywallPresetCard(preset: Preset) {
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
+            if (preset.applicationContext.isNotBlank()) {
+                Text(
+                    preset.applicationContext,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondaryHelperText()
+                )
+            }
+            val recheckDue = remember(preset.lastVerified) {
+                preset.needsRecheck(java.time.LocalDate.now())
+            }
             Text(
-                "Verified ${preset.lastVerified}",
+                if (recheckDue) {
+                    stringResource(R.string.edit_preset_recheck_due, preset.lastVerified)
+                } else {
+                    "Verified ${preset.lastVerified}"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondaryHelperText().copy(alpha = 0.72f),
+                fontStyle = if (recheckDue) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal
+            )
+            Text(
+                stringResource(R.string.edit_preset_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondaryHelperText().copy(alpha = 0.72f)
             )
