@@ -53,6 +53,7 @@ fun ExactUploadFixerApp(vm: MainViewModel) {
                 onWidthChanged = vm::onWidthChanged,
                 onHeightChanged = vm::onHeightChanged,
                 onPresetSelected = vm::onPresetSelected,
+                onFitModeChanged = vm::onFitModeChanged,
                 onEntitlementRefreshRequested = vm::refreshBillingEntitlement,
                 onProcessClick = vm::onProcessClick,
                 onBuyProClick = vm::buyPro,

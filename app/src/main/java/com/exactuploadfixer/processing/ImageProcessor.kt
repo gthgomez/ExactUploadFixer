@@ -88,15 +88,34 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             rawBitmap = null
 
             val working = if (constraints.hasDimensions) {
-                BitmapTransforms.centerCropTo(
-                    upright,
-                    constraints.targetWidth!!,
-                    constraints.targetHeight!!
-                )
+                // Exact dimensions requested. CROP loses edges (scale-to-fill +
+                // center-crop); FIT_PAD preserves the whole image on a white canvas.
+                if (constraints.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD) {
+                    BitmapTransforms.fitWithin(
+                        upright,
+                        constraints.targetWidth!!,
+                        constraints.targetHeight!!
+                    )
+                } else {
+                    BitmapTransforms.centerCropTo(
+                        upright,
+                        constraints.targetWidth!!,
+                        constraints.targetHeight!!
+                    )
+                }
             } else {
                 upright
             }
             workingBitmap = working
+
+            // Output is JPEG (no alpha): composite transparency onto white
+            // deliberately — a bare JPEG encode would turn it black.
+            val opaque = BitmapTransforms.flattenAlphaOntoWhite(working)
+            if (opaque !== working) {
+                workingBitmap = opaque
+                if (passBitmap === working) passBitmap = opaque
+            }
+            val finalWorking = workingBitmap!!
 
             val degradationReasons = mutableListOf<FixDegradation>()
             if (!constraints.hasDimensions && sampleSize > 1) {
@@ -107,7 +126,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
                 )
             }
 
-            passBitmap = working
+            passBitmap = finalWorking
             var cumulativeScaleFactor = 1f
             var totalIterations = 0
 
@@ -230,10 +249,15 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
     }
 
     private fun decodeBitmap(uri: Uri, sampleSize: Int): Bitmap? {
+        // Alpha-capable inputs (PNG/WebP/HEIC) must decode to ARGB_8888 so
+        // transparency can be composited onto white explicitly. JPEG has no
+        // alpha and keeps the 2-bytes-per-pixel RGB_565 memory win.
+        val alphaCapable = ImageFormat.detect(context, uri)?.hasAlpha == true
         val decodeOptions = BitmapFactory.Options().apply {
             inJustDecodeBounds = false
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.RGB_565
+            inPreferredConfig =
+                if (alphaCapable) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
         }
 
         return context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -315,7 +339,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             return FixFailure.InvalidTargetDimensions
         }
 
-        if (!ExifReader.isJpeg(context, uri)) return FixFailure.UnsupportedMimeType
+        if (!ImageFormat.isSupported(context, uri)) return FixFailure.UnsupportedMimeType
 
         return null
     }

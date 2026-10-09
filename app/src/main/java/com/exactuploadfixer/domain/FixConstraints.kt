@@ -1,6 +1,26 @@
 package com.exactuploadfixer.domain
 
 /**
+ * How a fixed-dimension request maps the (upright) source image onto the exact
+ * requested width × height.
+ *
+ *  - [CROP]: scale-to-fill then center-crop — output is exactly W×H, edges of
+ *    the source may be lost. This was the only behavior before v1.1.
+ *  - [FIT_PAD]: scale-to-fit, centered on a white canvas — the entire image is
+ *    preserved; solid white padding fills the rest when aspect ratios differ.
+ *    White is deliberate: JPEG output has no alpha, and white matches the
+ *    background expectation of form/ID upload portals.
+ */
+enum class FitMode {
+    CROP,
+    FIT_PAD;
+
+    companion object {
+        val DEFAULT = CROP
+    }
+}
+
+/**
  * Input contract for the engine. Both or neither dimension must be set.
  * One-sided input is ambiguous and will be rejected by validate().
  *
@@ -15,7 +35,8 @@ data class FixConstraints(
     val maxBytes: Long,
     val minBytes: Long = 0,
     val targetWidth: Int? = null,
-    val targetHeight: Int? = null
+    val targetHeight: Int? = null,
+    val fitMode: FitMode = FitMode.DEFAULT
 ) {
     val hasDimensions: Boolean get() = targetWidth != null && targetHeight != null
 

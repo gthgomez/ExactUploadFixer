@@ -47,6 +47,9 @@ data class AppUiState(
     val selectedPreset: Preset? = null,
     val editError: String? = null,
 
+    /** How exact dimensions are applied: crop to fill, or fit with padding. */
+    val fitMode: com.exactuploadfixer.domain.FitMode = com.exactuploadfixer.domain.FitMode.DEFAULT,
+
     // Processing in flight
     val isProcessing: Boolean = false,
     val currentQuality: Int? = null,
