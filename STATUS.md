@@ -27,7 +27,7 @@ The app is fully structured as a single-Activity Compose application with dual b
 - `:app:testGooglePlayDebugUnitTest` + `:app:testAmazonDebugUnitTest`: 300 tests, 0 failures.
 - `:app:lintGooglePlayDebug` + `:app:lintAmazonDebug`: 0 errors (~34 warnings, reviewed).
 - `:app:assembleGooglePlayDebug`, `:app:assembleAmazonDebug`, `:app:assembleGooglePlayRelease`, `:app:bundleGooglePlayRelease`: green (release artifacts unsigned — no credentials in this environment; see PLAY_RELEASE.md owner blockers).
-- PRs: #5 (correctness/blockers), #6 (competitive UX), #7 (release certification).
+- PRs: #5 (correctness/blockers), #6 (competitive UX), #11 (release certification); follow-up issues #7–#10.
 - NOT yet device-verified: Play purchase flow, HEIC decode on real hardware, screenshot store assets (no emulator on host).
 
 ## Recent Evidence

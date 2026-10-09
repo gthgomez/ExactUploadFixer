@@ -39,8 +39,9 @@ with proof.
 
 • Set a maximum file size in KB (1 KB = 1,000 bytes — stated plainly)
 • Optionally set exact width × height: crop to fill, or fit the whole image
-• One-tap presets with cited sources: US visa/DV digital image (240 kB), US
-  passport online renewal, LinkedIn profile photo, email attachments
+• One-tap presets with cited sources: US visa/DV digital image (≤ 240 kB),
+  US passport online renewal (54 KB–10 MB), LinkedIn profile photo, email
+  attachments
 • Processing runs entirely on your device — your photo is never uploaded
 • The result screen shows the measured output size, dimensions, and format, and
   verifies the limits you set were met
