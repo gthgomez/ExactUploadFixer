@@ -52,9 +52,29 @@ class FixConstraintsTest {
     // ── fromKb ────────────────────────────────────────────────────────────────
 
     @Test
-    fun `fromKb converts kilobytes to bytes correctly`() {
+    fun `fromKb converts DECIMAL kilobytes to bytes (1 KB = 1000 bytes)`() {
         val c = FixConstraints.fromKb(500L)
-        assertEquals(500L * 1024L, c.maxBytes)
+        assertEquals(500_000L, c.maxBytes)
+    }
+
+    @Test
+    fun `fromKb enforces exact 200000-byte limit for 200 KB`() {
+        assertEquals(200_000L, FixConstraints.fromKb(200L).maxBytes)
+    }
+
+    @Test
+    fun `fromKb enforces exact 240000-byte limit for 240 KB`() {
+        assertEquals(240_000L, FixConstraints.fromKb(240L).maxBytes)
+    }
+
+    @Test
+    fun `decimal reading is conservative versus binary interpretation`() {
+        // An output satisfying the decimal limit also satisfies a binary (KiB)
+        // check of the same number; the reverse is not true. The decimal reading
+        // is therefore the conservative mapping for ambiguous external limits.
+        val decimal = FixConstraints.fromKb(240L).maxBytes
+        val binary = 240L * 1024L
+        assertTrue(decimal <= binary)
     }
 
     @Test

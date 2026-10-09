@@ -20,7 +20,7 @@
     <string name="edit_size_label">Max File Size (KB)</string>
     <string name="edit_size_placeholder">e.g. 200</string>
     <string name="edit_size_suffix">KB</string>
-    <string name="edit_size_helper">US visa photo: 240 kB or less · Job portals: up to 500 KB</string>
+    <string name="edit_size_helper">1 KB = 1,000 bytes · US visa photo: 240 kB or less · Job portals: up to 500 KB</string>
     <string name="edit_chip_200kb">200 KB</string>
     <string name="edit_chip_240kb">240 KB</string>
     <string name="edit_chip_500kb">500 KB</string>
@@ -71,7 +71,7 @@
     <string name="result_compression_light">Light</string>
     <string name="result_compression_supporting">JPEG quality %d</string>
     <string name="result_requirements_title">Requirements Met</string>
-    <string name="result_requirement_ready">File is ready to upload</string>
+    <string name="result_requirement_ready">File limits verified</string>
     <string name="result_requirement_size">File size under %d KB</string>
     <string name="result_requirement_dimensions">Dimensions %1$d × %2$d px</string>
     <string name="result_fallback_note">Ready. Meets upload requirements.</string>

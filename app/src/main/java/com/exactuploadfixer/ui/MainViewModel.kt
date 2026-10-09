@@ -39,6 +39,9 @@ class MainViewModel(
     private val contentResolver = application.contentResolver
     private val prefs = application.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE)
 
+    /** In-flight processing job — cancelled when the flow is left or reset. */
+    private var processJob: kotlinx.coroutines.Job? = null
+
     var uiState by mutableStateOf(
         AppUiState(
             screen = if (application.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE).getBoolean("onboarding_completed", false)) {
@@ -67,6 +70,16 @@ class MainViewModel(
                 uiState = uiState.copy(isProUnlocked = unlocked)
             }
         }
+        viewModelScope.launch {
+            billing.pendingPurchase.collect { pending ->
+                uiState = uiState.copy(pendingPurchase = pending)
+            }
+        }
+        viewModelScope.launch {
+            billing.priceLabel.collect { label ->
+                uiState = uiState.copy(priceLabel = label)
+            }
+        }
         // Connect and check entitlement — failures are silent (free tier still works)
         viewModelScope.launch {
             try {
@@ -82,6 +95,9 @@ class MainViewModel(
 
     fun onPhotoPicked(uri: Uri?) {
         uri ?: return
+
+        // A new pick invalidates any in-flight run for the previous photo
+        cancelProcessing()
 
         // Reject non-JPEG before navigating away from PickScreen.
         // Mirrors ExifReader.isJpeg without importing from processing.*:
@@ -140,11 +156,16 @@ class MainViewModel(
     }
 
     fun onPresetSelected(preset: Preset) {
+        // Fill the size field with a conservative DECIMAL KB value derived from the
+        // preset's exact byte cap (rounded up), so re-processing through the input
+        // path never exceeds the preset limit. Processing itself uses preset.maxBytes
+        // directly (see onProcessClick) — the field is display/fallback only.
+        val conservativeKb = (preset.maxBytes + FixConstraints.BYTES_PER_KB - 1) / FixConstraints.BYTES_PER_KB
         uiState = uiState.copy(
             selectedPreset = preset,
             widthInput = preset.width.toString(),
             heightInput = preset.height.toString(),
-            maxSizeKbInput = (preset.maxBytes / 1024L).toString(),
+            maxSizeKbInput = conservativeKb.toString(),
             editError = null
         )
     }
@@ -153,7 +174,12 @@ class MainViewModel(
         if (uiState.isProcessing) return
         val uri = uiState.selectedUri ?: return
 
-        val maxBytes = uiState.maxSizeKbInput.toLongOrNull()?.let { it * 1024L }
+        // Presets carry an exact, source-verified byte cap — use it directly so the
+        // KB field never round-trips the limit lossily (e.g. DV 240,000 bytes).
+        // Free-typed values are decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
+        val selectedPreset = uiState.selectedPreset
+        val maxBytes = selectedPreset?.maxBytes
+            ?: uiState.maxSizeKbInput.toLongOrNull()?.let { it * FixConstraints.BYTES_PER_KB }
         if (maxBytes == null || maxBytes <= 0L) {
             uiState = uiState.copy(editError = "Enter a valid max file size in KB")
             return
@@ -179,10 +205,14 @@ class MainViewModel(
             isFallback = false
         )
 
-        viewModelScope.launch {
+        // Cancel any stale in-flight run before starting a new one so engine
+        // emissions from the old constraints can never land in the new state.
+        processJob?.cancel()
+        processJob = viewModelScope.launch {
             var testedProbeCount = 0f
-            engine.process(uri, constraints).collect { result ->
-                uiState = when (result) {
+            try {
+                engine.process(uri, constraints).collect { result ->
+                    uiState = when (result) {
                     is FixResult.Processing -> {
                         testedProbeCount += 1f
                         uiState.copy(
@@ -220,14 +250,33 @@ class MainViewModel(
                         resultFailure = result.reason,
                         screen = AppScreen.Result
                     )
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Superseded or torn down — leave state cleanup to the caller
+                throw e
+            } finally {
+                // If the job ended without a terminal emission (cancellation),
+                // make sure the UI never sticks in isProcessing.
+                if (uiState.isProcessing) {
+                    uiState = uiState.copy(isProcessing = false, currentQuality = null)
                 }
             }
+        }
+    }
+
+    private fun cancelProcessing() {
+        processJob?.cancel()
+        processJob = null
+        if (uiState.isProcessing) {
+            uiState = uiState.copy(isProcessing = false, currentQuality = null, processingProgress = null)
         }
     }
 
     // ── Result screen ────────────────────────────────────────────────────────
 
     fun onBackToEdit() {
+        cancelProcessing()
         uiState = uiState.copy(
             screen = AppScreen.Edit,
             result = null,
@@ -240,6 +289,7 @@ class MainViewModel(
 
     fun onStartOver() {
         // Reset everything except billing state
+        cancelProcessing()
         uiState = AppUiState(isProUnlocked = uiState.isProUnlocked)
     }
 

@@ -16,7 +16,9 @@ import com.revenuecat.purchases.ui.revenuecatui.customercenter.CustomerCenter
 /**
  * Amazon flavor upgrade surface.
  *
- * RevenueCat owns the paywall and Amazon IAP transaction UI; the app still owns
+ * RevenueCat owns the paywall (including its localized price and pending-purchase
+ * states — the priceLabel/pendingPurchase params are unused here by design); the
+ * app still owns
  * entitlement state through BillingGateway, so every purchase/restore completion
  * explicitly asks MainViewModel to refresh pro access.
  */
@@ -27,7 +29,9 @@ internal fun StoreUpgradeHost(
     onDismissPaywall: () -> Unit,
     onDismissCustomerCenter: () -> Unit,
     onEntitlementChanged: () -> Unit,
-    onRequestPurchase: () -> Unit
+    onRequestPurchase: () -> Unit,
+    priceLabel: String? = null,
+    pendingPurchase: Boolean = false
 ) {
     if (showPaywall) {
         PaywallDialog(

@@ -54,10 +54,10 @@ data class Preset(
  *                      kB; we apply the stricter 240,000-byte reading so the
  *                      output satisfies either interpretation. Byte-limit only.
  * Email Attachment   — No universal standard. 1600×1200 @ 500 KB is a practical default.
- * US Passport Digital Photo — US State Dept digital photo square range
- *                      (600–1200 px); 1200×1200 chosen for quality. The 500 KB
- *                      cap is an app-chosen conservative default, NOT an
- *                      authority-published byte limit.
+ * US Passport Digital Photo — US State Dept online renewal publishes the same
+ *                      technical spec as visa digital images: 600–1200 px square
+ *                      JPEG, <=240 kB. 1200×1200 chosen for quality; the 240,000-
+ *                      byte cap uses the stricter reading of the undefined kB.
  *
  * None of these validate identity, pose, background, or acceptance.
  */
@@ -68,11 +68,11 @@ val PRESETS: List<Preset> = listOf(
         width = 400,
         height = 400,
         maxBytes = 300L * 1024L,
-        note = "LinkedIn minimum 400×400 px — 300 KB cap is a conservative app default, not a LinkedIn limit",
-        lastVerified = "2026-04-20",
+        note = "LinkedIn minimum 400×400 px — 300 KB cap is a conservative app default, not a LinkedIn limit (LinkedIn publishes up to 20 MB)",
+        lastVerified = "2026-10-09",
         authorityUrl = "https://www.linkedin.com/help/linkedin/answer/a549049",
         applicationContext = "LinkedIn profile photo upload (LinkedIn Help, photo requirements)",
-        byteLimitInterpretation = "No published byte limit; 307200 bytes (300 KiB) is an app-chosen conservative cap, source: LinkedIn Help article above"
+        byteLimitInterpretation = "No byte-level limit published; LinkedIn Help states photos may be up to 20 MB. 307200 bytes (300 KiB) is an app-chosen conservative cap, source: LinkedIn Help article above"
     ),
     Preset(
         id = "government_id_form",
@@ -81,7 +81,7 @@ val PRESETS: List<Preset> = listOf(
         height = 600,
         maxBytes = 240_000L,
         note = "Portrait/photo fields only — not suitable for full document scans. Size only; does not establish eligibility",
-        lastVerified = "2026-04-20",
+        lastVerified = "2026-10-09",
         authorityUrl = "https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/photos/digital-image-requirements.html",
         applicationContext = "US State Dept visa/DV lottery digital image submission (square 600×600–1200×1200 px, JPEG, color)",
         byteLimitInterpretation = "Authority states '240 kB (kilobytes)' without defining kB; applied as max 240000 bytes (stricter reading), source: travel.state.gov digital image requirements page"
@@ -103,11 +103,11 @@ val PRESETS: List<Preset> = listOf(
         label = "US Passport Digital Photo",
         width = 1200,
         height = 1200,
-        maxBytes = 500L * 1024L,
-        note = "US State Dept digital photo square range is 600–1200 px; 1200×1200 chosen for quality. Dimensions only — acceptance is reviewed, not guaranteed",
-        lastVerified = "2026-04-20",
-        authorityUrl = "https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/photos/digital-image-requirements.html",
-        applicationContext = "US State Dept digital photo square dimension range (600–1200 px), checked against the visa digital-image requirements page",
-        byteLimitInterpretation = "No passport-specific byte limit cited; 512000 bytes (500 KiB) is an app-chosen conservative cap, source: none published for this route"
+        maxBytes = 240_000L,
+        note = "US State Dept passport online renewal: 600–1200 px square JPEG, ≤240 kB; 1200×1200 chosen for quality. Dimensions only — acceptance is reviewed, not guaranteed",
+        lastVerified = "2026-10-09",
+        authorityUrl = "https://travel.state.gov/content/travel/en/passports/have-passport/renew-online.html",
+        applicationContext = "US passport ONLINE RENEWAL photo upload (travel.state.gov renew-online page). Same technical spec as visa digital images",
+        byteLimitInterpretation = "Authority states 'Less than or equal to 240 kB' without defining kB; applied as max 240000 bytes (stricter reading), source: travel.state.gov passport online renewal page"
     )
 )

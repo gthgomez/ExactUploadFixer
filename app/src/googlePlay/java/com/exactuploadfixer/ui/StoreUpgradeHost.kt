@@ -1,9 +1,12 @@
 package com.exactuploadfixer.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontStyle
 
 /**
  * Google Play placeholder while Amazon is the active launch target.
@@ -19,19 +22,39 @@ internal fun StoreUpgradeHost(
     onDismissPaywall: () -> Unit,
     onDismissCustomerCenter: () -> Unit,
     onEntitlementChanged: () -> Unit,
-    onRequestPurchase: () -> Unit
+    onRequestPurchase: () -> Unit,
+    priceLabel: String? = null,
+    pendingPurchase: Boolean = false
 ) {
     if (showPaywall) {
         AlertDialog(
             onDismissRequest = onDismissPaywall,
             title = { Text("Unlock Premium Presets") },
-            text = { Text("Upgrade to Pro to unlock precise, verified size limits and exact dimensions for Passport, Visa, LinkedIn, and more portal uploads.") },
+            text = {
+                Column {
+                    Text("Upgrade to Pro to unlock precise, verified size limits and exact dimensions for Passport, Visa, LinkedIn, and more portal uploads.")
+                    // Only ever show the store-provided localized price — never an invented one
+                    if (priceLabel != null) {
+                        Text(
+                            "Lifetime access: $priceLabel — one-time purchase via Google Play.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (pendingPurchase) {
+                        Text(
+                            "A previous purchase is still processing with Google Play. It will unlock automatically once the payment completes — you will not be charged twice.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     onRequestPurchase()
                     onDismissPaywall()
                 }) {
-                    Text("Buy Lifetime Access")
+                    Text(if (priceLabel != null) "Buy Lifetime ($priceLabel)" else "Buy Lifetime Access")
                 }
             },
             dismissButton = {

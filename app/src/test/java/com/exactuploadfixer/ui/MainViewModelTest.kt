@@ -75,7 +75,7 @@ class MainViewModelTest {
     }
 
     private fun buildVm(
-        engine: FakeUploadFixerEngine = FakeUploadFixerEngine(),
+        engine: com.exactuploadfixer.domain.UploadFixerEngine = FakeUploadFixerEngine(),
         billing: FakeBillingGateway = FakeBillingGateway()
     ) = MainViewModel(
         ApplicationProvider.getApplicationContext<Application>(),
@@ -227,7 +227,8 @@ class MainViewModelTest {
 
         val constraints = engine.lastConstraints
         assertNotNull(constraints)
-        assertEquals(300L * 1024L, constraints!!.maxBytes)
+        // Decimal KB policy: "300" KB = 300,000 bytes, not 307,200
+        assertEquals(300_000L, constraints!!.maxBytes)
         assertEquals(600, constraints.targetWidth)
         assertEquals(600, constraints.targetHeight)
     }
@@ -377,10 +378,64 @@ class MainViewModelTest {
 
         assertEquals(preset.width.toString(), vm.uiState.widthInput)
         assertEquals(preset.height.toString(), vm.uiState.heightInput)
-        assertEquals((preset.maxBytes / 1024L).toString(), vm.uiState.maxSizeKbInput)
+        // Filled with conservative DECIMAL KB (rounded up) — display/fallback only;
+        // processing uses the preset's exact byte cap.
+        assertEquals(
+            (preset.maxBytes + 999L) / 1000L,
+            vm.uiState.maxSizeKbInput.toLongOrNull()
+        )
         assertEquals(preset, vm.uiState.selectedPreset)
         assertNull(vm.uiState.editError)
     }
+
+    @Test
+    fun `onProcessClick with 200 KB input enforces exact 200000-byte limit`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val vm = buildVm(engine = engine)
+            vm.onPhotoPicked(buildJpegUri())
+            vm.onMaxSizeChanged("200")
+
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            assertEquals(200_000L, engine.lastConstraints!!.maxBytes)
+        }
+
+    @Test
+    fun `onProcessClick with 240 KB input enforces exact 240000-byte limit`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val vm = buildVm(engine = engine)
+            vm.onPhotoPicked(buildJpegUri())
+            vm.onMaxSizeChanged("240")
+
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            assertEquals(240_000L, engine.lastConstraints!!.maxBytes)
+        }
+
+    @Test
+    fun `onProcessClick with DV preset uses exact 240000 bytes without KB round-trip`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val billing = FakeBillingGateway()
+            billing.simulatePurchase()
+            val vm = buildVm(engine = engine, billing = billing)
+            advanceUntilIdle()
+
+            vm.onPhotoPicked(buildJpegUri())
+            val dvPreset = PRESETS.first { it.id == "government_id_form" }
+            assertEquals(240_000L, dvPreset.maxBytes)
+            vm.onPresetSelected(dvPreset)
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            // Lossless: the preset's exact byte cap reaches the engine even though
+            // it is not a round number of display KiB (240000 bytes = 234.375 KiB)
+            assertEquals(240_000L, engine.lastConstraints!!.maxBytes)
+        }
 
     @Test
     fun `manual field edit after preset clears selectedPreset`() = runTest(testDispatcher) {
@@ -562,5 +617,86 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, engine.callCount)
+    }
+
+    // ── In-flight cancellation / stale-result resilience ──────────────────────
+
+    /** Engine whose first process() call never terminates. */
+    private class HangingEngine : com.exactuploadfixer.domain.UploadFixerEngine {
+        var callCount = 0
+        override suspend fun process(sourceUri: Uri, constraints: FixConstraints) =
+            kotlinx.coroutines.flow.flow {
+                callCount++
+                if (callCount == 1) {
+                    kotlinx.coroutines.awaitCancellation()
+                } else {
+                    emit(
+                        FixResult.Success(
+                            ProcessedImage(
+                                bytes = ByteArray(64), width = 32, height = 32,
+                                qualityUsed = 80, fileSizeBytes = 64L
+                            )
+                        )
+                    )
+                }
+            }
+    }
+
+    @Test
+    fun `onStartOver cancels in-flight processing and never sticks in isProcessing`() =
+        runTest(testDispatcher) {
+            val engine = HangingEngine()
+            val vm = buildVm(engine = engine)
+            vm.onPhotoPicked(buildJpegUri())
+            vm.onMaxSizeChanged("500")
+
+            vm.onProcessClick()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.isProcessing)
+
+            vm.onStartOver()
+            assertFalse(vm.uiState.isProcessing)
+            assertEquals(AppScreen.Pick, vm.uiState.screen)
+        }
+
+    @Test
+    fun `onPhotoPicked cancels in-flight processing`() = runTest(testDispatcher) {
+        val engine = HangingEngine()
+        val vm = buildVm(engine = engine)
+        vm.onPhotoPicked(buildJpegUri())
+        vm.onMaxSizeChanged("500")
+        vm.onProcessClick()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.isProcessing)
+
+        vm.onPhotoPicked(buildJpegUri())
+        assertFalse(vm.uiState.isProcessing)
+    }
+
+    // ── Billing pending / price state ──────────────────────────────────────────
+
+    @Test
+    fun `pending purchase state propagates to UI state`() = runTest(testDispatcher) {
+        val billing = FakeBillingGateway()
+        val vm = buildVm(billing = billing)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.pendingPurchase)
+
+        billing.simulatePendingPurchase()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.pendingPurchase)
+        assertFalse(vm.uiState.isProUnlocked)
+    }
+
+    @Test
+    fun `store price label propagates to UI state`() = runTest(testDispatcher) {
+        val billing = FakeBillingGateway()
+        val vm = buildVm(billing = billing)
+        advanceUntilIdle()
+        assertNull(vm.uiState.priceLabel)
+
+        billing.simulatePriceLoaded("$2.99")
+        advanceUntilIdle()
+        assertEquals("$2.99", vm.uiState.priceLabel)
     }
 }

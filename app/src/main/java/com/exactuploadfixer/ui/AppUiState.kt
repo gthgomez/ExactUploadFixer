@@ -57,6 +57,12 @@ data class AppUiState(
     val result: ProcessedImage? = null,
     val resultFailure: FixFailure? = null,
 
-    // Billing — driven by BillingGateway.isProUnlocked StateFlow
-    val isProUnlocked: Boolean = false
+    // Billing — driven by BillingGateway StateFlows
+    val isProUnlocked: Boolean = false,
+
+    /** A purchase exists but is PENDING at the store — no unlock yet. */
+    val pendingPurchase: Boolean = false,
+
+    /** Store-localized lifetime price, null until product details load. */
+    val priceLabel: String? = null
 )

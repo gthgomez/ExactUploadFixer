@@ -82,26 +82,51 @@ fun ResultScreen(
     // Resolve strings at composition time (resource reads stay inside Compose so
     // configuration changes invalidate correctly) — lint: LocalContextGetResourceValueCall.
     val saveSuccessMessage = processedImage?.let {
-        stringResource(R.string.result_save_success, it.fileSizeBytes / 1024)
+        stringResource(R.string.result_save_success, formatKbInt(it.fileSizeBytes))
     }
     val saveFailedMessage = stringResource(R.string.result_save_failed)
     val snackbarOpenLabel = stringResource(R.string.result_snackbar_open)
+
+    // Staging state for the snackbar Open action (see saveLauncher below)
+    var lastSavedTempFile by remember { mutableStateOf<java.io.File?>(null) }
 
     val saveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("image/jpeg"),
         onResult = { uri ->
             if (uri != null && processedImage != null) {
+                // Clear stale staging files, then stage this export. The temp file is
+                // kept (not deleted immediately) so the snackbar Open action can open
+                // it through FileProvider; it is removed by the next export or on app start.
+                ExportManager.cleanUpCache(context)
                 val tmp = ExportManager.createTempFile(context, processedImage.bytes)
                 val ok = ExportManager.saveToUri(context, tmp, uri)
-                ExportManager.cleanUpCache(context)
+                lastSavedTempFile = if (ok) tmp else null
                 scope.launch {
-                    if (ok) {
+                    val result = if (ok) {
                         snackbarHostState.showSnackbar(
                             saveSuccessMessage ?: "",
                             actionLabel = snackbarOpenLabel
                         )
                     } else {
                         snackbarHostState.showSnackbar(saveFailedMessage)
+                    }
+                    // The Open action must actually open the image. The SAF document
+                    // URI grants read access to this app, not to arbitrary viewers,
+                    // so open the staged copy via FileProvider (read grant included).
+                    if (result == SnackbarResult.ActionPerformed) {
+                        val file = lastSavedTempFile
+                        if (file != null) {
+                            try {
+                                context.startActivity(
+                                    android.content.Intent.createChooser(
+                                        ExportManager.getViewIntent(context, file),
+                                        null
+                                    )
+                                )
+                            } catch (_: Exception) {
+                                // No image viewer installed — the save itself still succeeded
+                            }
+                        }
                     }
                 }
             }
@@ -226,7 +251,7 @@ fun ResultScreen(
             ResultActionPanel(
                 onSave = {
                     // Suggested filename matches the "Saved as fixed_%dkb.jpg" snackbar copy.
-                    val suggestedName = processedImage.let { "fixed_${it.fileSizeBytes / 1024}kb.jpg" }
+                    val suggestedName = processedImage.let { "fixed_${formatKbInt(it.fileSizeBytes)}kb.jpg" }
                     saveLauncher.launch(suggestedName)
                 },
                 onShare = {
@@ -339,12 +364,12 @@ private fun buildResultSubtitle(
     requestedKb: Long?,
     presetLabel: String?
 ): String {
-    val outKb = outputSizeBytes / 1024
+    val outKb = formatKb(outputSizeBytes)
     return when {
         presetLabel != null ->
             "Matches $presetLabel — $outKb KB."
         requestedKb != null && sourceSizeBytes != null && sourceSizeBytes > 0 -> {
-            val srcKb = sourceSizeBytes / 1024
+            val srcKb = formatKb(sourceSizeBytes)
             "$srcKb KB → $outKb KB — under $requestedKb KB."
         }
         requestedKb != null ->
@@ -677,14 +702,14 @@ private fun BeforeAfterSummary(
                 SummaryStatCard(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.result_stat_before_size),
-                    value = if (sourceSizeBytes != null && sourceSizeBytes > 0L) "${sourceSizeBytes / 1024} KB" else "—",
+                    value = if (sourceSizeBytes != null && sourceSizeBytes > 0L) "${formatKb(sourceSizeBytes)} KB" else "—",
                     supporting = stringResource(R.string.result_stat_before_supporting),
                     emphasize = false
                 )
                 SummaryStatCard(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.result_stat_after_size),
-                    value = "${outputSizeBytes / 1024} KB",
+                    value = "${formatKb(outputSizeBytes)} KB",
                     supporting = if (reduced) stringResource(R.string.result_stat_after_reduced) else stringResource(R.string.result_stat_after_no_reduction),
                     emphasize = true,
                     icon = if (reduced) Icons.Outlined.ArrowDownward else Icons.Outlined.ArrowUpward
@@ -800,7 +825,7 @@ private fun RequirementsSummary(ui: AppUiState) {
                 color = MaterialTheme.colorScheme.primary
             )
             if (preset != null) {
-                CheckRow("${preset.label} — ${preset.width} × ${preset.height} px, max ${preset.maxBytes / 1024} KB")
+                CheckRow("${preset.label} — ${preset.width} × ${preset.height} px, max ${formatKb(preset.maxBytes)} KB")
             } else {
                 if (requestedKb != null)   CheckRow(stringResource(R.string.result_requirement_size, requestedKb))
                 if (requestedW != null && requestedH != null) {

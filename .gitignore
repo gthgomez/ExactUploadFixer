@@ -45,3 +45,6 @@ export_presets.cfg
 # Temporary development artifacts
 commitPlan.json
 runs/
+
+# Kotlin daemon session files
+.kotlin/

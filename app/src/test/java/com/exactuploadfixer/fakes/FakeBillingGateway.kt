@@ -16,6 +16,21 @@ class FakeBillingGateway : BillingGateway {
     private val _isProUnlocked = MutableStateFlow(false)
     override val isProUnlocked: StateFlow<Boolean> = _isProUnlocked.asStateFlow()
 
+    private val _pendingPurchase = MutableStateFlow(false)
+    override val pendingPurchase: StateFlow<Boolean> = _pendingPurchase.asStateFlow()
+
+    private val _priceLabel = MutableStateFlow<String?>(null)
+    override val priceLabel: StateFlow<String?> = _priceLabel.asStateFlow()
+
+    /** Test hooks for pending/price state propagation. */
+    fun simulatePendingPurchase() {
+        _pendingPurchase.value = true
+    }
+
+    fun simulatePriceLoaded(label: String) {
+        _priceLabel.value = label
+    }
+
     var connectCallCount = 0
     var refreshCallCount = 0
 

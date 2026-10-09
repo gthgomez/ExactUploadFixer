@@ -40,6 +40,15 @@ class RevenueCatBillingGateway(private val appContext: Context) : BillingGateway
     private val _isProUnlocked = MutableStateFlow(false)
     override val isProUnlocked: StateFlow<Boolean> = _isProUnlocked.asStateFlow()
 
+    // Amazon IAP/RevenueCat surfaces pending + failed purchases through
+    // awaitPurchaseResult/PurchasesError internally; no PENDING state is
+    // exposed to the app layer today. Kept false (see launchPurchase below).
+    private val _pendingPurchase = MutableStateFlow(false)
+    override val pendingPurchase: StateFlow<Boolean> = _pendingPurchase.asStateFlow()
+
+    private val _priceLabel = MutableStateFlow<String?>(null)
+    override val priceLabel: StateFlow<String?> = _priceLabel.asStateFlow()
+
     /** Cached during refreshEntitlement() — required before launchPurchase() works. */
     private var cachedProPackage: RcPackage? = null
 
@@ -83,6 +92,9 @@ class RevenueCatBillingGateway(private val appContext: Context) : BillingGateway
             val offerings = Purchases.sharedInstance.awaitOfferings()
             cachedProPackage = offerings.current?.availablePackages?.firstOrNull { pkg ->
                 pkg.product.id in BillingConfig.AMAZON_PRODUCT_IDS
+            }
+            cachedProPackage?.let { pkg ->
+                _priceLabel.value = pkg.product.price.formatted
             }
         } catch (_: PurchasesException) {
             // Error — cachedProPackage stays null; launchPurchase() will no-op safely

@@ -99,11 +99,17 @@ class PresetTest {
     }
 
     @Test
-    fun `passport_square preset is 1200x1200 with 500KB cap`() {
+    fun `passport_square preset is 1200x1200 with the published 240000-byte renewal cap`() {
         val p = PRESETS.first { it.id == "passport_square" }
         assertEquals(1200, p.width)
         assertEquals(1200, p.height)
-        assertEquals(500L * 1024L, p.maxBytes)
+        // Passport ONLINE RENEWAL publishes "≤ 240 kB"; stricter decimal reading.
+        // Regression guard: a 500 KiB cap here produced files the portal rejects.
+        assertEquals(240_000L, p.maxBytes)
+        assertEquals(
+            "https://travel.state.gov/content/travel/en/passports/have-passport/renew-online.html",
+            p.authorityUrl
+        )
     }
 
     // ── EX01: sourced constraints, no eligibility claims ──────────────────────
@@ -153,9 +159,8 @@ class PresetTest {
 
     @Test
     fun `presets past the 90-day recheck window are visibly flagged by needsRecheck`() {
-        val verified = PRESETS.first().lastVerified
-        val atWindowEdge = java.time.LocalDate.parse(verified).plusDays(90)
         PRESETS.forEach { preset ->
+            val atWindowEdge = java.time.LocalDate.parse(preset.lastVerified).plusDays(90)
             assertTrue(
                 "${preset.id}: must not need recheck exactly at the 90-day boundary",
                 !preset.needsRecheck(atWindowEdge)
