@@ -41,13 +41,57 @@ class JpegCompressionTest {
         return stream.size().toLong()
     }
 
-    private fun search(bitmap: Bitmap, maxBytes: Long, maxIterations: Int = 12): JpegCompression.SearchResult =
+    private fun search(
+        bitmap: Bitmap,
+        maxBytes: Long,
+        minBytes: Long = 0L,
+        maxIterations: Int = 12
+    ): JpegCompression.SearchResult =
         runBlocking {
-            JpegCompression.searchUnderMaxSize(bitmap, maxBytes, maxIterations) {}
+            JpegCompression.searchUnderMaxSize(bitmap, maxBytes, minBytes, maxIterations) {}
         }
 
     private fun fitOf(result: JpegCompression.SearchResult): JpegCompression.SearchResult.Fit =
         result as JpegCompression.SearchResult.Fit
+
+    // ── Bounded ranges: published minimum AND maximum (e.g. 54 KB–10 MB) ──────
+
+    @Test
+    fun fit_respectsAPublishedMinimumSize() {
+        val bitmap = buildBitmap()
+        val q100Size = measuredSizeAt(bitmap, 100)
+        val minBytes = q100Size / 2
+        val result = search(bitmap, maxBytes = 1_000_000L, minBytes = minBytes)
+        assertTrue("expected Fit, got: $result", result is JpegCompression.SearchResult.Fit)
+        val fit = fitOf(result)
+        assertTrue(
+            "fit ${fit.image.fileSizeBytes} must be >= minBytes $minBytes",
+            fit.image.fileSizeBytes >= minBytes
+        )
+    }
+
+    @Test
+    fun noFit_reportsBelowMinimumDistinctly() {
+        val bitmap = buildBitmap(120, 90)
+        val q35Size = measuredSizeAt(bitmap, 35)
+        // A minimum above even the smallest encodable size is unreachable
+        val result = search(bitmap, maxBytes = 10_000_000L, minBytes = q35Size + 1_000_000L)
+        assertTrue("expected NoFit, got: $result", result is JpegCompression.SearchResult.NoFit)
+        val noFit = result as JpegCompression.SearchResult.NoFit
+        assertTrue(
+            "must be flagged as below-minimum so the engine can raise the right failure",
+            noFit.belowMinimumSeen
+        )
+    }
+
+    @Test
+    fun noFit_withoutMinimumIsNotFlaggedBelowMinimum() {
+        // Tiny maxBytes: no fit because everything is TOO BIG, not too small
+        val bitmap = buildBitmap(120, 90)
+        val result = search(bitmap, maxBytes = 500L)
+        assertTrue(result is JpegCompression.SearchResult.NoFit)
+        assertTrue(!(result as JpegCompression.SearchResult.NoFit).belowMinimumSeen)
+    }
 
     // ── Core guarantee: never exceed the requested maxBytes ───────────────────
 

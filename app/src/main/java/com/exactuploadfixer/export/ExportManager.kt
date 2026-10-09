@@ -65,9 +65,24 @@ object ExportManager {
     }
 
     /**
+     * Creates a VIEW intent for [file] via FileProvider so any installed image
+     * viewer can open an exported result (read grant included). Used by the
+     * save-confirmation snackbar's Open action.
+     */
+    fun getViewIntent(context: Context, file: File): Intent {
+        val authority = context.packageName + PROVIDER_AUTHORITY_SUFFIX
+        val uri = FileProvider.getUriForFile(context, authority, file)
+        return Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "image/jpeg")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    /**
      * Deletes all files in the exports cache directory.
-     * Call at app start (clear stale files from last session) and after export completes.
-     * Gemini Phase 4 QA: "Repeat use — memory stays stable" requires this cleanup.
+     * Call at app start (clear stale files from last session) and before staging
+     * a new export. Do NOT call immediately after a share/save: the staged file
+     * must stay alive while the share sheet or "Open" action can still use it.
      */
     fun cleanUpCache(context: Context) {
         val dir = File(context.cacheDir, EXPORTS_SUBDIR)

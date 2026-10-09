@@ -30,7 +30,18 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
     override suspend fun process(sourceUri: Uri, constraints: FixConstraints): Flow<FixResult> =
         flow {
             val completed = withTimeoutOrNull(PROCESS_TIMEOUT_MS) {
-                runPipeline(sourceUri, constraints)
+                try {
+                    runPipeline(sourceUri, constraints)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (_: OutOfMemoryError) {
+                    emit(FixResult.Failure(FixFailure.MemoryBudgetExceeded))
+                } catch (_: Exception) {
+                    // Content providers fail in arbitrary ways (SecurityException,
+                    // FileNotFoundException, IOException, rotten ParcelFileDescriptor).
+                    // A failed read is a recoverable failure screen, never a crash.
+                    emit(FixResult.Failure(FixFailure.DecodeFailed))
+                }
                 true
             }
             if (completed == null) {
@@ -112,6 +123,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
                 val searchResult = JpegCompression.searchUnderMaxSize(
                     bitmap = currentBitmap,
                     maxBytes = constraints.maxBytes,
+                    minBytes = constraints.minBytes,
                     maxIterations = minOf(
                         remainingIterations,
                         JpegCompression.DEFAULT_MAX_ITERATIONS_PER_PASS
@@ -149,6 +161,10 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
                     }
 
                     is JpegCompression.SearchResult.NoFit -> {
+                        if (searchResult.belowMinimumSeen) {
+                            emit(FixResult.Failure(FixFailure.OutputBelowMinimumSize))
+                            return
+                        }
                         if (constraints.hasDimensions) {
                             emit(FixResult.Failure(FixFailure.CompressionCouldNotMeetMaxSize))
                             return
@@ -181,8 +197,6 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             }
 
             emit(FixResult.Failure(FixFailure.CompressionCouldNotMeetMaxSize))
-        } catch (_: OutOfMemoryError) {
-            emit(FixResult.Failure(FixFailure.MemoryBudgetExceeded))
         } finally {
             recycle(rawBitmap)
             if (passBitmap !== workingBitmap) recycle(passBitmap)

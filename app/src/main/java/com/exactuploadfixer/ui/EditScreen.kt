@@ -544,6 +544,8 @@ fun EditScreen(
     StoreUpgradeHost(
         showPaywall = showStorePaywall,
         showCustomerCenter = showCustomerCenter,
+        priceLabel = ui.priceLabel,
+        pendingPurchase = ui.pendingPurchase,
         onDismissPaywall = { showStorePaywall = false },
         onDismissCustomerCenter = { showCustomerCenter = false },
         onEntitlementChanged = onEntitlementRefreshRequested,
@@ -601,7 +603,7 @@ private fun InlinePhotoPreview(
                     val sizeLabel = if (sourceSizeBytes >= 1_048_576)
                         "%.1f MB".format(sourceSizeBytes / 1_048_576f)
                     else
-                        "${sourceSizeBytes / 1024} KB"
+                        "${formatKb(sourceSizeBytes)} KB"
                     "$sizeLabel · JPEG"
                 } else "JPEG"
                 Text(
@@ -675,10 +677,10 @@ private fun ProcessingNote(ui: AppUiState) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (hasPreset) {
                     val p = requireNotNull(ui.selectedPreset)
-                    NoteItem("Will apply ${p.label}: ${p.width} × ${p.height} px, under ${p.maxBytes / 1024} KB", primary = true)
+                    NoteItem("Will apply ${p.label}: ${p.width} × ${p.height} px, under ${formatKb(p.maxBytes)} KB", primary = true)
                 } else {
                     if (hasSize) {
-                        val srcPart = ui.sourceSizeBytes?.let { if (it > 0L) "${it / 1024} KB → " else "" } ?: ""
+                        val srcPart = ui.sourceSizeBytes?.let { if (it > 0L) "${formatKb(it)} KB → " else "" } ?: ""
                         NoteItem("Will compress ${srcPart}under $maxKb KB", primary = true)
                     }
                     if (hasDimensions) NoteItem("Will scale to ${ui.widthInput} × ${ui.heightInput} px", primary = false)
@@ -726,6 +728,12 @@ private fun PresetSection(
             }
         }
 
+        // Unlocked path: show the same preset details (byte limit, sizing
+        // disclaimer, applicationContext, recheck-due flag) as the paywall card.
+        if (ui.isProUnlocked && ui.selectedPreset != null) {
+            ProPaywallPresetCard(preset = requireNotNull(ui.selectedPreset))
+        }
+
         // Context line below chips — only shown when locked
         if (!ui.isProUnlocked) {
             Text(
@@ -758,7 +766,7 @@ private fun ProPaywallPresetCard(preset: Preset) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                "${preset.width} × ${preset.height} px  ·  max ${preset.maxBytes / 1024} KB",
+                "${preset.width} × ${preset.height} px  ·  max ${preset.maxBytes} bytes (${preset.maxBytes / 1024} KiB)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondaryHelperText()
             )
@@ -770,8 +778,28 @@ private fun ProPaywallPresetCard(preset: Preset) {
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
+            if (preset.applicationContext.isNotBlank()) {
+                Text(
+                    preset.applicationContext,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondaryHelperText()
+                )
+            }
+            val recheckDue = remember(preset.lastVerified) {
+                preset.needsRecheck(java.time.LocalDate.now())
+            }
             Text(
-                "Verified ${preset.lastVerified}",
+                if (recheckDue) {
+                    stringResource(R.string.edit_preset_recheck_due, preset.lastVerified)
+                } else {
+                    "Verified ${preset.lastVerified}"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondaryHelperText().copy(alpha = 0.72f),
+                fontStyle = if (recheckDue) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal
+            )
+            Text(
+                stringResource(R.string.edit_preset_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondaryHelperText().copy(alpha = 0.72f)
             )
