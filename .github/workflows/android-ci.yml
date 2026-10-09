@@ -52,6 +52,19 @@ jobs:
       - name: Assemble debug (both flavors)
         run: ./gradlew --no-daemon --stacktrace :app:assembleGooglePlayDebug :app:assembleAmazonDebug
 
+      - name: Release build + AAB (unsigned — no signing credentials in CI)
+        # Proves R8/minify and bundle tasks stay green. The artifact is
+        # UNSIGNED: it is a build gate, not evidence of a signed Play build.
+        run: ./gradlew --no-daemon --stacktrace :app:assembleGooglePlayRelease :app:bundleGooglePlayRelease
+
+      - name: Upload release AAB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab-unsigned
+          path: app/build/outputs/bundle/googlePlayRelease/*.aab
+          if-no-files-found: ignore
+
       - name: Upload debug APKs
         if: always()
         uses: actions/upload-artifact@v4
