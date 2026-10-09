@@ -99,24 +99,39 @@ class PresetTest {
     }
 
     @Test
-    fun `passport_square preset is 1200x1200 with the published 240000-byte renewal cap`() {
-        val p = PRESETS.first { it.id == "passport_square" }
+    fun `passport_online_renewal preset models the published 54 KB-10 MB bounded range`() {
+        val p = PRESETS.first { it.id == "passport_online_renewal" }
         assertEquals(1200, p.width)
         assertEquals(1200, p.height)
-        // Passport ONLINE RENEWAL publishes "≤ 240 kB"; stricter decimal reading.
-        // Regression guard: a 500 KiB cap here produced files the portal rejects.
-        assertEquals(240_000L, p.maxBytes)
+        // Online renewal is NOT the visa spec: bounded file size 54 KB–10 MB.
+        // Regression guard: earlier drafts wrongly reused the visa 240 kB cap
+        // and later a 500 KiB cap — both produced inapplicable constraints.
+        assertEquals(10_000_000L, p.maxBytes)
+        // Conservative floor: 54 KiB (55,296 bytes), which also satisfies a
+        // strict 54,000-byte checker — the higher of the two readings.
+        assertEquals(55_296L, p.minBytes)
+        assertTrue("min must be below max", p.minBytes < p.maxBytes)
         assertEquals(
             "https://travel.state.gov/content/travel/en/passports/have-passport/renew-online.html",
             p.authorityUrl
         )
     }
 
+    @Test
+    fun `visa and passport presets do not conflate their routes`() {
+        val visa = PRESETS.first { it.id == "government_id_form" }
+        val passport = PRESETS.first { it.id == "passport_online_renewal" }
+        // The visa 240 kB cap must never leak into the passport renewal preset
+        assertTrue(passport.maxBytes != visa.maxBytes)
+        assertTrue(passport.applicationContext.contains("ONLINE RENEWAL"))
+        assertTrue(visa.applicationContext.contains("visa"))
+    }
+
     // ── EX01: sourced constraints, no eligibility claims ──────────────────────
 
     @Test
     fun `sourced presets carry a non-blank authorityUrl and application context`() {
-        val sourcedIds = setOf("job_portal_avatar", "government_id_form", "passport_square")
+        val sourcedIds = setOf("job_portal_avatar", "government_id_form", "passport_online_renewal")
         PRESETS.forEach { preset ->
             assertTrue("${preset.id}: applicationContext must not be blank", preset.applicationContext.isNotBlank())
             if (preset.id in sourcedIds) {

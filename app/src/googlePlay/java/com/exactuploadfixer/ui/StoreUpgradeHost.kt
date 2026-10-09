@@ -50,11 +50,17 @@ internal fun StoreUpgradeHost(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onRequestPurchase()
-                    onDismissPaywall()
-                }) {
-                    Text(if (priceLabel != null) "Buy Lifetime ($priceLabel)" else "Buy Lifetime Access")
+                // Never let the purchase flow start before the store has told us
+                // the real localized price — launchBillingFlow would either fail
+                // or present an amount the user has not seen.
+                TextButton(
+                    onClick = {
+                        onRequestPurchase()
+                        onDismissPaywall()
+                    },
+                    enabled = priceLabel != null
+                ) {
+                    Text(priceLabel?.let { "Buy Lifetime ($it)" } ?: "Loading price…")
                 }
             },
             dismissButton = {

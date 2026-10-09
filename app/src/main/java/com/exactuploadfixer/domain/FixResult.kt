@@ -44,6 +44,7 @@ sealed interface FixFailure {
     data object MemoryBudgetExceeded : FixFailure      // OOM risk after subsampling
     data object InvalidTargetDimensions : FixFailure   // one-sided or negative
     data object CompressionCouldNotMeetMaxSize : FixFailure  // quality floor reached
+    data object OutputBelowMinimumSize : FixFailure    // even max quality stays under a published minimum
     data object ProcessingTimedOut : FixFailure        // guardrail tripped
     data object SaveFailed : FixFailure
 }
@@ -70,6 +71,7 @@ sealed interface FixDegradation {
  * or an explicit failure with a typed reason.
  * Guarantee:
  *   - Success.image.fileSizeBytes <= requested maxBytes
+ *   - Success.image.fileSizeBytes >= requested minBytes (when a minimum is set)
  *   - Degraded.image.fileSizeBytes <= requested maxBytes
  *   - Failure is explicit; there is no silent over-limit export
  */

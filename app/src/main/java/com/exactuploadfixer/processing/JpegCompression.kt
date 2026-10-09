@@ -35,7 +35,9 @@ object JpegCompression {
 
         data class NoFit(
             val smallestBytesSeen: Long,
-            override val iterations: Int
+            override val iterations: Int,
+            /** True when candidates existed but all were below a configured minimum. */
+            val belowMinimumSeen: Boolean = false
         ) : SearchResult
 
         data class EncodeFailure(
@@ -58,10 +60,12 @@ object JpegCompression {
     suspend fun searchUnderMaxSize(
         bitmap: Bitmap,
         maxBytes: Long,
+        minBytes: Long = 0L,
         maxIterations: Int = DEFAULT_MAX_ITERATIONS_PER_PASS,
         onQualityTested: suspend (quality: Int) -> Unit
     ): SearchResult {
         require(maxBytes > 0L) { "maxBytes must be > 0" }
+        require(minBytes in 0..maxBytes) { "minBytes must be within 0..maxBytes" }
         require(maxIterations > 0) { "maxIterations must be > 0" }
 
         val stream = ByteArrayOutputStream()
@@ -89,7 +93,9 @@ object JpegCompression {
             val size = stream.size().toLong()
             testedSizes[quality] = size
             smallestBytesSeen = minOf(smallestBytesSeen, size)
-            val bytes = if (size <= maxBytes) stream.toByteArray() else null
+            // A fit must satisfy BOTH sides of a bounded range when a minimum
+            // is published (e.g. passport renewal 54 KB–10 MB).
+            val bytes = if (size in minBytes..maxBytes) stream.toByteArray() else null
             return Probe(quality = quality, sizeBytes = size, bytes = bytes)
         }
 
@@ -112,16 +118,18 @@ object JpegCompression {
             val probe = testQuality(quality) ?: break
             if (probe.sizeBytes < 0L) return SearchResult.EncodeFailure(iterations)
 
-            if (probe.sizeBytes <= maxBytes) {
+            if (probe.sizeBytes in minBytes..maxBytes) {
                 updateBestFit(probe)
                 lowestFitQuality = probe.quality
                 if (probe.quality == QUALITY_MAX) {
                     return buildFitResult(bitmap, bestFit!!, iterations)
                 }
                 break
-            } else {
+            } else if (probe.sizeBytes > maxBytes) {
                 highestOversizeQuality = probe.quality
             }
+            // Below minBytes: not a fit, not oversize. Larger qualities may
+            // still enter the range, so keep probing the remaining anchors.
         }
 
         val fitQuality = lowestFitQuality
@@ -136,11 +144,13 @@ object JpegCompression {
                     val probe = testQuality(mid) ?: break
                     if (probe.sizeBytes < 0L) return SearchResult.EncodeFailure(iterations)
 
-                    if (probe.sizeBytes <= maxBytes) {
-                        updateBestFit(probe)
-                        low = mid
-                    } else {
+                    if (probe.sizeBytes > maxBytes) {
                         high = mid
+                    } else {
+                        // Under max: quality too low for the boundary (either
+                        // already a fit or still below the minimum) — go higher
+                        if (probe.sizeBytes >= minBytes) updateBestFit(probe)
+                        low = mid
                     }
                 }
             }
@@ -151,9 +161,14 @@ object JpegCompression {
             return buildFitResult(bitmap, candidate, iterations)
         }
 
+        // Distinguish "cannot get under max" from "cannot reach a published
+        // minimum": the user remedies them in opposite directions.
+        val belowMin = testedSizes.values.isNotEmpty() &&
+            testedSizes.values.all { it < minBytes }
         return SearchResult.NoFit(
             smallestBytesSeen = if (smallestBytesSeen == Long.MAX_VALUE) 0L else smallestBytesSeen,
-            iterations = iterations
+            iterations = iterations,
+            belowMinimumSeen = belowMin
         )
     }
 

@@ -41,7 +41,6 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
         // Must match the product ID created in Google Play Console > Monetize > Products
         const val PRO_PRODUCT_ID = "exact_upload_fixer_pro"
         private const val TAG = "PlayBillingGateway"
-        private const val ACK_RETRY_LIMIT = 3
     }
 
     private val _isProUnlocked = MutableStateFlow(false)
@@ -93,6 +92,10 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
 
     override suspend fun refreshEntitlement() {
         if (!billingClient.isReady) return
+
+        // First, retry any acknowledgments that failed earlier (checked outcomes,
+        // queued in acknowledgeIfNeeded). Then re-query state.
+        retryUnacknowledged()
 
         suspendCancellableCoroutine { cont ->
             val params = QueryPurchasesParams.newBuilder()
@@ -231,11 +234,14 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
         }
     }
 
-    /** Retry queued acknowledgments. Called at the start of refreshEntitlement(). */
+    /**
+     * Retry queued acknowledgments. Called at the start of every
+     * refreshEntitlement() (init and each onResume), giving a bounded retry per
+     * app resume until the store confirms; successes are removed from the queue.
+     */
     private fun retryUnacknowledged() {
         if (unacknowledgedTokens.isEmpty()) return
-        val tokens = unacknowledgedTokens.toList()
-        tokens.forEach { token ->
+        unacknowledgedTokens.toList().forEach { token ->
             val params = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(token)
                 .build()
@@ -246,10 +252,6 @@ class PlayBillingGateway(private val appContext: Context) : PurchasesUpdatedList
                     Log.w(TAG, "Ack retry failed (${result.responseCode}); still queued")
                 }
             }
-        }
-        if (unacknowledgedTokens.size > ACK_RETRY_LIMIT * tokens.size) {
-            // Absurd growth guard — should never happen; drop and re-query instead
-            unacknowledgedTokens.clear()
         }
     }
 

@@ -255,6 +255,17 @@ class MainViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // Superseded or torn down — leave state cleanup to the caller
                 throw e
+            } catch (_: Exception) {
+                // Belt-and-braces: the engine contract says failures are emissions,
+                // but an unexpected throw must still become a recoverable failure.
+                uiState = uiState.copy(
+                    isProcessing = false,
+                    currentQuality = null,
+                    processingProgress = 1f,
+                    result = null,
+                    resultFailure = com.exactuploadfixer.domain.FixFailure.DecodeFailed,
+                    screen = AppScreen.Result
+                )
             } finally {
                 // If the job ended without a terminal emission (cancellation),
                 // make sure the UI never sticks in isProcessing.

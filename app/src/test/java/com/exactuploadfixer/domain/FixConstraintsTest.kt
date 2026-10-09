@@ -49,6 +49,18 @@ class FixConstraintsTest {
         assertTrue(c.hasDimensions)
     }
 
+    @Test
+    fun `fromPreset carries an explicit minimum byte bound`() {
+        val preset = Preset(
+            id = "bounded", label = "B", width = 600, height = 600,
+            minBytes = 55_296L, maxBytes = 10_000_000L, note = "", lastVerified = "2026-01-01",
+            applicationContext = "test"
+        )
+        val c = FixConstraints.fromPreset(preset)
+        assertEquals(55_296L, c.minBytes)
+        assertEquals(10_000_000L, c.maxBytes)
+    }
+
     // ── fromKb ────────────────────────────────────────────────────────────────
 
     @Test

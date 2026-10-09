@@ -96,6 +96,7 @@
 
     <!-- Snackbar -->
     <string name="result_save_success">Saved as fixed_%dkb.jpg</string>
+    <string name="result_share_failed">Couldn\'t prepare the photo for sharing. Free up space and try again.</string>
     <string name="result_save_failed">Save failed — try again</string>
     <string name="result_snackbar_open">Open</string>
 
@@ -114,6 +115,9 @@
     <string name="failure_title_unknown">Something Went Wrong</string>
 
     <!-- Failure details -->
+    <string name="failure_title_below_min">File too small for this requirement</string>
+    <string name="failure_detail_below_min">This requirement has a minimum file size, and the photo cannot reach it without adding quality that is not there.</string>
+    <string name="failure_remedy_below_min">Try the original, unedited photo — its file is usually large enough.</string>
     <string name="failure_detail_compression">The image cannot be compressed to this size without becoming unusable.</string>
     <string name="failure_detail_mime">Only JPEG files are supported. The selected file is a different format.</string>
     <string name="failure_detail_timeout">Processing this image took longer than the safe limit allows.</string>

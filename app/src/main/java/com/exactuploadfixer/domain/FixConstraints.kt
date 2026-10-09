@@ -13,6 +13,7 @@ package com.exactuploadfixer.domain
  */
 data class FixConstraints(
     val maxBytes: Long,
+    val minBytes: Long = 0,
     val targetWidth: Int? = null,
     val targetHeight: Int? = null
 ) {
@@ -23,6 +24,7 @@ data class FixConstraints(
 
         fun fromPreset(preset: Preset): FixConstraints = FixConstraints(
             maxBytes = preset.maxBytes,
+            minBytes = preset.minBytes,
             targetWidth = preset.width,
             targetHeight = preset.height
         )

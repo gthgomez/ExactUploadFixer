@@ -570,7 +570,7 @@ class MainViewModelTest {
 
             val jpegUri = buildJpegUri()
             vm.onPhotoPicked(jpegUri)
-            val preset = PRESETS.first { it.id == "passport_square" }
+            val preset = PRESETS.first { it.id == "passport_online_renewal" }
             vm.onPresetSelected(preset)
             vm.onProcessClick()
             advanceUntilIdle()

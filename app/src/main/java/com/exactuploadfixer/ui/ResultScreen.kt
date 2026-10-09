@@ -85,6 +85,7 @@ fun ResultScreen(
         stringResource(R.string.result_save_success, formatKbInt(it.fileSizeBytes))
     }
     val saveFailedMessage = stringResource(R.string.result_save_failed)
+    val shareFailedMessage = stringResource(R.string.result_share_failed)
     val snackbarOpenLabel = stringResource(R.string.result_snackbar_open)
 
     // Staging state for the snackbar Open action (see saveLauncher below)
@@ -97,10 +98,16 @@ fun ResultScreen(
                 // Clear stale staging files, then stage this export. The temp file is
                 // kept (not deleted immediately) so the snackbar Open action can open
                 // it through FileProvider; it is removed by the next export or on app start.
-                ExportManager.cleanUpCache(context)
-                val tmp = ExportManager.createTempFile(context, processedImage.bytes)
-                val ok = ExportManager.saveToUri(context, tmp, uri)
-                lastSavedTempFile = if (ok) tmp else null
+                val ok = try {
+                    ExportManager.cleanUpCache(context)
+                    val tmp = ExportManager.createTempFile(context, processedImage.bytes)
+                    val saved = ExportManager.saveToUri(context, tmp, uri)
+                    lastSavedTempFile = if (saved) tmp else null
+                    saved
+                } catch (_: Exception) {
+                    // Low storage / IO failure staging the temp file — recoverable
+                    false
+                }
                 scope.launch {
                     val result = if (ok) {
                         snackbarHostState.showSnackbar(
@@ -255,13 +262,18 @@ fun ResultScreen(
                     saveLauncher.launch(suggestedName)
                 },
                 onShare = {
-                    val tmp = ExportManager.createTempFile(context, processedImage.bytes)
-                    context.startActivity(
-                        android.content.Intent.createChooser(
-                            ExportManager.getShareIntent(context, tmp),
-                            "Share"
+                    try {
+                        val tmp = ExportManager.createTempFile(context, processedImage.bytes)
+                        context.startActivity(
+                            android.content.Intent.createChooser(
+                                ExportManager.getShareIntent(context, tmp),
+                                "Share"
+                            )
                         )
-                    )
+                    } catch (_: Exception) {
+                        // Staging failed (e.g. low storage) — surface, don't crash
+                        scope.launch { snackbarHostState.showSnackbar(shareFailedMessage) }
+                    }
                 },
                 onBackToEdit = onBackToEdit,
                 onStartOver = onStartOver
@@ -419,6 +431,7 @@ private fun FailureState(
 ) {
     val title = when (failure) {
         FixFailure.CompressionCouldNotMeetMaxSize -> stringResource(R.string.failure_title_compression)
+        FixFailure.OutputBelowMinimumSize -> stringResource(R.string.failure_title_below_min)
         FixFailure.UnsupportedMimeType            -> stringResource(R.string.failure_title_mime)
         FixFailure.ProcessingTimedOut             -> stringResource(R.string.failure_title_timeout)
         FixFailure.DecodeFailed                   -> stringResource(R.string.failure_title_decode)
@@ -430,6 +443,7 @@ private fun FailureState(
     }
     val detail = when (failure) {
         FixFailure.CompressionCouldNotMeetMaxSize -> stringResource(R.string.failure_detail_compression)
+        FixFailure.OutputBelowMinimumSize -> stringResource(R.string.failure_detail_below_min)
         FixFailure.UnsupportedMimeType            -> stringResource(R.string.failure_detail_mime)
         FixFailure.ProcessingTimedOut             -> stringResource(R.string.failure_detail_timeout)
         FixFailure.DecodeFailed                   -> stringResource(R.string.failure_detail_decode)
@@ -441,6 +455,7 @@ private fun FailureState(
     }
     val remedy: String? = when (failure) {
         FixFailure.CompressionCouldNotMeetMaxSize -> stringResource(R.string.failure_remedy_compression)
+        FixFailure.OutputBelowMinimumSize -> stringResource(R.string.failure_remedy_below_min)
         FixFailure.UnsupportedMimeType            -> stringResource(R.string.failure_remedy_mime)
         FixFailure.ProcessingTimedOut             -> stringResource(R.string.failure_remedy_timeout)
         FixFailure.DecodeFailed                   -> stringResource(R.string.failure_remedy_decode)
