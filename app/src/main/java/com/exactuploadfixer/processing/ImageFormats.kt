@@ -27,22 +27,16 @@ enum class ImageFormat(val mime: String) {
         val SUPPORTED = setOf(JPEG, PNG, WEBP, HEIF)
 
         /**
-         * True when the URI is an image this app can process. MIME first, then
-         * magic bytes (ground truth). Returns false for anything else — the
-         * caller surfaces an explicit unsupported-format message.
+         * True when the URI is an image this app can process. Ground truth is
+         * the FILE HEADER, never the declared MIME type: mislabeled files are
+         * common, and a trusted MIME would let a renamed/foreign file through
+         * to the decoder. Returns false for anything else — the caller
+         * surfaces an explicit unsupported-format message.
          */
         fun isSupported(context: Context, uri: Uri): Boolean = detect(context, uri) != null
 
-        /** Detected format, or null when unsupported/unreadable. */
-        fun detect(context: Context, uri: Uri): ImageFormat? {
-            context.contentResolver.getType(uri)?.let { mime ->
-                SUPPORTED.firstOrNull { it.mime == mime || (it == HEIF && mime in HEIF_MIMES) }
-                    ?.let { return it }
-            }
-            return detectByMagic(context, uri)
-        }
-
-        private val HEIF_MIMES = setOf("image/heif", "image/heic", "image/heif-sequence", "image/heic-sequence")
+        /** Detected format from magic bytes, or null when unsupported/unreadable. */
+        fun detect(context: Context, uri: Uri): ImageFormat? = detectByMagic(context, uri)
 
         private fun detectByMagic(context: Context, uri: Uri): ImageFormat? = try {
             context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -71,9 +65,16 @@ enum class ImageFormat(val mime: String) {
                 header[8] == 'W'.code.toByte() && header[9] == 'E'.code.toByte() &&
                 header[10] == 'B'.code.toByte() && header[11] == 'P'.code.toByte()
             ) return WEBP
-            if (length >= 12 && String(header, 4, 4) == "ftyp") return HEIF
+            // ISO-BMFF: require the ftyp box AND a known HEIF/HEVC brand —
+            // bare "ftyp" would also match MP4/MOV containers.
+            if (length >= 12 && String(header, 4, 4) == "ftyp") {
+                val brand = String(header, 8, 4)
+                if (brand in HEIF_BRANDS) return HEIF
+            }
             return null
         }
+
+        private val HEIF_BRANDS = setOf("heic", "heix", "hevc", "hevx", "mif1", "msf1")
 
         private val PNG_SIGNATURE = byteArrayOf(
             0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A

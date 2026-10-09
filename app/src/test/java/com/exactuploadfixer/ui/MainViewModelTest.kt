@@ -409,10 +409,11 @@ class MainViewModelTest {
 
         assertEquals(preset.width.toString(), vm.uiState.widthInput)
         assertEquals(preset.height.toString(), vm.uiState.heightInput)
-        // Filled with conservative DECIMAL KB (rounded up) — display/fallback only;
-        // processing uses the preset's exact byte cap.
+        // Filled with conservative DECIMAL KB (rounded DOWN) — display/fallback
+        // only; editing it can only lower the effective limit, never exceed the
+        // sourced cap. Processing uses the preset's exact byte cap.
         assertEquals(
-            (preset.maxBytes + 999L) / 1000L,
+            preset.maxBytes / 1000L,
             vm.uiState.maxSizeKbInput.toLongOrNull()
         )
         assertEquals(preset, vm.uiState.selectedPreset)

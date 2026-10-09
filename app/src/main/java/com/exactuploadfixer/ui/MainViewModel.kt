@@ -62,11 +62,7 @@ class MainViewModel(
         // Matches the engine's bounded search budget so UI progress advances steadily.
         const val PROCESSING_PROGRESS_STEPS = 48f
 
-        val SUPPORTED_MIMES = setOf(
-            "image/jpeg", "image/png", "image/webp", "image/heif", "image/heic"
-        )
-
-        /** Magic-byte fallback: JPEG SOI, PNG signature, RIFF/WEBP, ISO-BMFF ftyp. */
+        /** Magic-byte gate: JPEG SOI, PNG signature, RIFF/WEBP, ISO-BMFF HEIF brand. */
         fun headerHasSupportedSignature(header: ByteArray, length: Int): Boolean {
             if (length >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() &&
                 header[2] == 0xFF.toByte()
@@ -78,7 +74,9 @@ class MainViewModel(
                 header[9] == 'E'.code.toByte() && header[10] == 'B'.code.toByte() &&
                 header[11] == 'P'.code.toByte()
             ) return true
-            if (length >= 12 && String(header, 4, 4) == "ftyp") return true
+            if (length >= 12 && String(header, 4, 4) == "ftyp") {
+                return String(header, 8, 4) in setOf("heic", "heix", "hevc", "hevx", "mif1", "msf1")
+            }
             return false
         }
     }
@@ -121,8 +119,9 @@ class MainViewModel(
 
         // Reject unsupported files before navigating away from PickScreen.
         // Mirrors ImageFormat.isSupported without importing from processing.*:
-        // MIME allow-list first, then magic-byte fallback (mislabels are common).
-        val supported = contentResolver.getType(uri) in SUPPORTED_MIMES || try {
+        // the FILE HEADER is the ground truth — a declared MIME type is never
+        // sufficient on its own (mislabeled files are common).
+        val supported = try {
             contentResolver.openInputStream(uri)?.use { stream ->
                 val header = ByteArray(12)
                 var read = 0
@@ -185,10 +184,11 @@ class MainViewModel(
 
     fun onPresetSelected(preset: Preset) {
         // Fill the size field with a conservative DECIMAL KB value derived from the
-        // preset's exact byte cap (rounded up), so re-processing through the input
-        // path never exceeds the preset limit. Processing itself uses preset.maxBytes
-        // directly (see onProcessClick) — the field is display/fallback only.
-        val conservativeKb = (preset.maxBytes + FixConstraints.BYTES_PER_KB - 1) / FixConstraints.BYTES_PER_KB
+        // preset's exact byte cap, rounded DOWN so that editing a field afterwards
+        // (which clears the preset and falls back to this number) can only ever
+        // LOWER the effective limit — never silently exceed the sourced cap.
+        // Processing itself uses preset.maxBytes directly (see onProcessClick).
+        val conservativeKb = preset.maxBytes / FixConstraints.BYTES_PER_KB
         uiState = uiState.copy(
             selectedPreset = preset,
             widthInput = preset.width.toString(),

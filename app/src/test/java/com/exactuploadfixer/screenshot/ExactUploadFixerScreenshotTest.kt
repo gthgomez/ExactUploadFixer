@@ -82,6 +82,68 @@ class ExactUploadFixerScreenshotTest {
     }
 
     @Test
+    fun editScreen_lightTheme_dimensionsEntered_cropMode() {
+        // NEW golden (2026-10-09 review pass): fit/crop selector + aspect-aware
+        // preview, Crop-to-fill state. Recorded intentionally, never regenerated
+        // to mask regressions.
+        val state = AppUiState(
+            screen = AppScreen.Edit,
+            maxSizeKbInput = "240",
+            widthInput = "600",
+            heightInput = "600",
+            fitMode = com.exactuploadfixer.domain.FitMode.CROP
+        )
+        composeTestRule.setContent {
+            ThemedContent(darkTheme = false) {
+                EditScreen(
+                    ui = state,
+                    onMaxSizeChanged = {},
+                    onWidthChanged = {},
+                    onHeightChanged = {},
+                    onFitModeChanged = {},
+                    onPresetSelected = {},
+                    onEntitlementRefreshRequested = {},
+                    onProcessClick = {},
+                    onBuyProClick = { true },
+                    onBack = {}
+                )
+            }
+        }
+        composeTestRule.onRoot()
+            .captureRoboImage("src/test/snapshots/editScreen_lightTheme_dimensionsEntered_cropMode.png")
+    }
+
+    @Test
+    fun editScreen_lightTheme_dimensionsEntered_fitPadMode() {
+        // NEW golden: Fit-with-padding state — selector shows FIT selected.
+        val state = AppUiState(
+            screen = AppScreen.Edit,
+            maxSizeKbInput = "240",
+            widthInput = "600",
+            heightInput = "600",
+            fitMode = com.exactuploadfixer.domain.FitMode.FIT_PAD
+        )
+        composeTestRule.setContent {
+            ThemedContent(darkTheme = false) {
+                EditScreen(
+                    ui = state,
+                    onMaxSizeChanged = {},
+                    onWidthChanged = {},
+                    onHeightChanged = {},
+                    onFitModeChanged = {},
+                    onPresetSelected = {},
+                    onEntitlementRefreshRequested = {},
+                    onProcessClick = {},
+                    onBuyProClick = { true },
+                    onBack = {}
+                )
+            }
+        }
+        composeTestRule.onRoot()
+            .captureRoboImage("src/test/snapshots/editScreen_lightTheme_dimensionsEntered_fitPadMode.png")
+    }
+
+    @Test
     fun editScreen_darkTheme_defaultState() {
         val state = AppUiState(screen = AppScreen.Edit)
         composeTestRule.setContent {

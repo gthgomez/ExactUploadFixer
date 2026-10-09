@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -129,8 +130,11 @@ fun EditScreen(
         InlinePhotoPreview(
             uri = ui.selectedUri,
             sourceSizeBytes = ui.sourceSizeBytes,
-            fitToFrame = ui.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD &&
-                ui.widthInput.isNotEmpty() && ui.heightInput.isNotEmpty(),
+            // Mirror the requested output geometry: frame matches the exact
+            // aspect ratio once both dimensions are entered.
+            targetAspect = ui.widthInput.toIntOrNull()?.takeIf { it > 0 }
+                ?.let { w -> ui.heightInput.toIntOrNull()?.takeIf { it > 0 }?.let { h -> w.toFloat() / h } },
+            fitToFrame = ui.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD,
             onExpandClick = { showPreviewSheet = true }
         )
 
@@ -648,10 +652,15 @@ private fun FitModeOption(
 private fun InlinePhotoPreview(
     uri: android.net.Uri?,
     sourceSizeBytes: Long?,
+    targetAspect: Float?,
     fitToFrame: Boolean,
     onExpandClick: () -> Unit
 ) {
     if (uri == null) return
+    // Crop mode only applies with exact dimensions; without them the preview
+    // frames the whole photo and no crop claim is implied.
+    val dimensionsEntered = targetAspect != null
+    val showCrop = dimensionsEntered && !fitToFrame
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -669,14 +678,30 @@ private fun InlinePhotoPreview(
                 model = uri,
                 contentDescription = "Selected photo",
                 modifier = Modifier
-                    .size(68.dp)
+                    .let { base ->
+                        if (targetAspect != null) {
+                            base
+                                .widthIn(max = 96.dp)
+                                .aspectRatio(targetAspect, matchHeightConstraintsFirst = false)
+                                .heightIn(max = 68.dp)
+                        } else {
+                            base.size(68.dp)
+                        }
+                    }
                     .clip(RoundedCornerShape(9.dp))
                     .background(
                         // Fit mode pads with white — mirror that in the preview
-                        if (fitToFrame) androidx.compose.ui.graphics.Color.White
+                        if (fitToFrame && dimensionsEntered) androidx.compose.ui.graphics.Color.White
                         else MaterialTheme.colorScheme.surfaceContainerHighest
                     ),
-                contentScale = if (fitToFrame) ContentScale.Fit else ContentScale.Crop
+                contentScale = when {
+                    // Exact dims + crop: fill the exact output frame (accurate)
+                    showCrop -> ContentScale.Crop
+                    // Exact dims + fit: whole image inside the output frame
+                    dimensionsEntered && fitToFrame -> ContentScale.Fit
+                    // No dimensions: show the whole photo without a crop claim
+                    else -> ContentScale.Fit
+                }
             )
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
