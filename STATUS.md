@@ -1,6 +1,6 @@
 # ExactUploadFixer Status
 
-**Last verified:** 2026-08-01
+**Last verified:** 2026-10-09
 **Status:** usable
 **Confidence:** high
 
@@ -16,8 +16,19 @@ The app is fully structured as a single-Activity Compose application with dual b
 
 - Single-Activity Jetpack Compose architecture with manual ViewModel dependency wiring.
 - Image compression and dimension adjustment engine with JPEG quality floor sweep (down to 35).
-- Dual flavor support: Google Play Billing and Amazon RevenueCat integration.
-- Storage Access Framework (SAF) export and FileProvider sharing.
+- Byte-exact limits: decimal KB input (1 KB = 1,000 bytes), preset byte caps applied losslessly (regression-tested at 200,000/240,000 bytes).
+- Exact dimensions with explicit Crop-to-fill / Fit-with-padding modes; EXIF orientation (incl. mirrored) normalization.
+- Input formats: JPEG, PNG, WebP, HEIC/HEIF (magic-byte verified; alpha composited onto white). Output stays JPEG.
+- Dual flavor support: Google Play Billing (ack-checked, restore-acknowledging, pending-aware) and Amazon RevenueCat integration.
+- Storage Access Framework (SAF) export and FileProvider sharing; save-confirmation Open action opens the exported file.
+
+## 2026-10-09 verification evidence
+
+- `:app:testGooglePlayDebugUnitTest` + `:app:testAmazonDebugUnitTest`: 300 tests, 0 failures.
+- `:app:lintGooglePlayDebug` + `:app:lintAmazonDebug`: 0 errors (~34 warnings, reviewed).
+- `:app:assembleGooglePlayDebug`, `:app:assembleAmazonDebug`, `:app:assembleGooglePlayRelease`, `:app:bundleGooglePlayRelease`: green (release artifacts unsigned — no credentials in this environment; see PLAY_RELEASE.md owner blockers).
+- PRs: #5 (correctness/blockers), #6 (competitive UX), #7 (release certification).
+- NOT yet device-verified: Play purchase flow, HEIC decode on real hardware, screenshot store assets (no emulator on host).
 
 ## Recent Evidence
 

@@ -1,6 +1,6 @@
 # ExactUploadFixer
 
-Resizes and compresses JPEG images to meet explicit size and dimension targets you set (width, height, max bytes). Includes a free manual tier and Pro presets that encode sourced size constraints for specific upload routes.
+Resizes and compresses photos (JPEG, PNG, or WebP input; JPEG output) to meet explicit size and dimension targets you set (width, height, max bytes; 1 KB = 1,000 bytes). Includes a free manual tier and Pro presets that encode sourced, dated size constraints for specific upload routes — file limits only, never acceptance guarantees. See PLAY_RELEASE.md for release status.
 
 **Presets are constraint sets, not eligibility certificates.** Meeting a preset's dimensions and byte cap does not validate identity, pose, background, image content, or final acceptance — every receiving authority reviews and decides. No guaranteed-acceptance claim is made or implied.
 

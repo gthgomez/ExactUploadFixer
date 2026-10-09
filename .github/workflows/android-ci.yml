@@ -45,8 +45,8 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace :app:testGooglePlayDebugUnitTest :app:testAmazonDebugUnitTest
 
       - name: Lint (both flavors)
-        # No lint baseline exists yet; report lint results without blocking.
-        continue-on-error: true
+        # Errors fail the build (abortOnError default). Warnings are reviewed
+        # but do not block; reports upload below and as artifacts on failure.
         run: ./gradlew --no-daemon --stacktrace :app:lintGooglePlayDebug :app:lintAmazonDebug
 
       - name: Assemble debug (both flavors)
