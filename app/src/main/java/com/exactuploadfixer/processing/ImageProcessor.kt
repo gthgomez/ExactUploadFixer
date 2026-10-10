@@ -347,13 +347,14 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             return FixFailure.InvalidTargetDimensions
         }
 
-        // Unreadable source (revoked grant, dead cloud stream) is a decode
-        // problem, not a format problem — report it as such before the header
-        // check can misclassify it as "unsupported format".
-        if (!ImageFormat.readable(context, uri)) return FixFailure.DecodeFailed
-        if (!ImageFormat.isSupported(context, uri)) return FixFailure.UnsupportedMimeType
-
-        return null
+        // Single stream open decides: unreadable source (revoked grant, dead
+        // cloud stream) is a decode problem, not a format problem — report it
+        // as such instead of letting the header check misclassify it.
+        return when (ImageFormat.classify(context, uri)) {
+            is ImageFormatProbe.Supported -> null
+            ImageFormatProbe.Unreadable -> FixFailure.DecodeFailed
+            ImageFormatProbe.Unsupported -> FixFailure.UnsupportedMimeType
+        }
     }
 
     private data class SourceInfo(

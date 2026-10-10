@@ -840,7 +840,15 @@ private fun RequirementsSummary(ui: AppUiState) {
                 color = MaterialTheme.colorScheme.primary
             )
             if (preset != null) {
-                CheckRow("${preset.label} — ${preset.width} × ${preset.height} px, max ${formatKb(preset.maxBytes)} KB")
+                // Bounded presets (e.g. passport renewal 54 KB–10 MB) must show
+                // BOTH published bounds — a max-only row would overstate what
+                // was verified.
+                val bounds = if (preset.minBytes > 0L) {
+                    "min ${formatKb(preset.minBytes)} KB, max ${formatKb(preset.maxBytes)} KB"
+                } else {
+                    "max ${formatKb(preset.maxBytes)} KB"
+                }
+                CheckRow("${preset.label} — ${preset.width} × ${preset.height} px, $bounds")
             } else {
                 if (requestedKb != null)   CheckRow(stringResource(R.string.result_requirement_size, requestedKb))
                 if (requestedW != null && requestedH != null) {

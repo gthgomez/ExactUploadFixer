@@ -44,6 +44,13 @@ jobs:
       - name: Unit tests (both flavors)
         run: ./gradlew --no-daemon --stacktrace :app:testGooglePlayDebugUnitTest :app:testAmazonDebugUnitTest
 
+      - name: Screenshot golden verification (googlePlay flavor)
+        # Roborazzi goldens are recorded on the googlePlay flavor; amazon
+        # renders flavor-specific strings so it is excluded from the shared
+        # comparison. Fails the build when UI output drifts from the
+        # committed goldens.
+        run: ./gradlew --no-daemon --stacktrace :app:testGooglePlayDebugUnitTest -Proborazzi.test.verify=true
+
       - name: Lint (both flavors)
         # Errors fail the build (abortOnError default). Warnings are reviewed
         # but do not block; reports upload below and as artifacts on failure.

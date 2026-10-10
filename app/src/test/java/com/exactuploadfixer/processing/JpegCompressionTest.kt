@@ -96,22 +96,33 @@ class JpegCompressionTest {
         val s100 = sizeAt(100)
         val s96 = sizeAt(96)
         val s92 = sizeAt(92)
-        org.junit.Assume.assumeTrue(
+        // Preconditions are ASSERTED, not assumed: a silently skipped
+        // regression test protects nothing. A degenerate encoder (flat sizes
+        // across the 92..100 span) must fail this test, not skip it.
+        assertTrue(
             "fixture requires strictly increasing sizes at 92<96<100: $s92<$s96<$s100",
             s92 < s96 && s96 < s100
         )
         // max just under q100 (anchor 100 oversizes), min just above q92
         // (anchor 92 lands below min) — only the 92..100 interior can fit.
+        // s96 < s100 and s96 > s92 guarantee the interior is non-empty by
+        // construction, so no second precondition check is needed.
         val maxBytes = s100 - 1
         val minBytes = s92 + 1
-        org.junit.Assume.assumeTrue("interior must be non-empty", s96 <= maxBytes && s96 >= minBytes)
 
         val result = search(bitmap, maxBytes = maxBytes, minBytes = minBytes)
         assertTrue("expected Fit in the narrow window, got: $result", result is JpegCompression.SearchResult.Fit)
         val fit = fitOf(result)
         assertTrue(fit.image.fileSizeBytes >= minBytes)
         assertTrue(fit.image.fileSizeBytes <= maxBytes)
-        assertTrue("fit must use a quality above the below-min anchor", fit.image.qualityUsed > 92)
+        // Prove the INTERMEDIATE path was exercised: the fit must be a
+        // quality strictly between the two anchors (an off-anchor probe),
+        // i.e. the belowMin↔oversize bracket was resolved by search rather
+        // than an anchor landing inside the window by luck.
+        assertTrue(
+            "fit quality ${fit.image.qualityUsed} must be strictly between anchors 92 and 100",
+            fit.image.qualityUsed > 92 && fit.image.qualityUsed < 100
+        )
     }
 
     @Test

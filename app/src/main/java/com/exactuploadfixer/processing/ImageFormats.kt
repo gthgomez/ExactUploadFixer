@@ -36,19 +36,33 @@ enum class ImageFormat(val mime: String) {
         fun isSupported(context: Context, uri: Uri): Boolean = detect(context, uri) != null
 
         /**
-         * True when the URI can be opened and yields at least one byte.
-         * Distinguishes "provider/stream unreadable" (a decode problem →
-         * DecodeFailed) from "readable but unknown header" (a format problem →
-         * UnsupportedMimeType). A SecurityException from a revoked grant or an
-         * empty cloud-provider stream is NOT a format issue and must not be
-         * reported as one.
+         * Single-pass classification of a picked URI, from ONE stream open:
+         * readable-and-known → [ImageFormatProbe.Supported], readable-but-unknown-header
+         * → [ImageFormatProbe.Unsupported], and unopenable/empty (revoked grant, dead
+         * cloud stream) → [ImageFormatProbe.Unreadable]. One open (instead of separate
+         * readability + header reads) avoids re-reading transient remote
+         * providers and closes the race where the first open succeeds and the
+         * second fails.
          */
-        fun readable(context: Context, uri: Uri): Boolean = try {
+        fun classify(context: Context, uri: Uri): ImageFormatProbe = try {
             context.contentResolver.openInputStream(uri)?.use { stream ->
-                stream.read() != -1
-            } == true
+                val header = ByteArray(12)
+                var read = 0
+                while (read < header.size) {
+                    val n = stream.read(header, read, header.size - read)
+                    if (n < 0) break
+                    read += n
+                }
+                val format = detectHeader(header, read)
+                when {
+                    format != null -> ImageFormatProbe.Supported(format)
+                    // Opened but produced no bytes — nothing to decode.
+                    read == 0 -> ImageFormatProbe.Unreadable
+                    else -> ImageFormatProbe.Unsupported
+                }
+            } ?: ImageFormatProbe.Unreadable
         } catch (_: Exception) {
-            false
+            ImageFormatProbe.Unreadable
         }
 
         /** Detected format from magic bytes, or null when unsupported/unreadable. */
@@ -96,4 +110,14 @@ enum class ImageFormat(val mime: String) {
             0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
         )
     }
+}
+
+/**
+ * Result of [ImageFormat.classify] — a single-open classification of a picked
+ * image source. See [ImageFormat.classify] for the rationale.
+ */
+sealed interface ImageFormatProbe {
+    data class Supported(val format: ImageFormat) : ImageFormatProbe
+    data object Unsupported : ImageFormatProbe
+    data object Unreadable : ImageFormatProbe
 }

@@ -218,7 +218,29 @@ class MainViewModelTest {
         assertEquals(AppScreen.Pick, vm.uiState.screen)
         assertNotNull(vm.uiState.pickError)
         assertNull(vm.uiState.selectedUri)
+        // Unsupported header must surface the FORMAT message, not a read error
+        assertEquals(
+            context.getString(com.exactuploadfixer.R.string.pick_error_jpeg_only),
+            vm.uiState.pickError
+        )
     }
+
+    @Test
+    fun `onPhotoPicked reports an unreadable uri as a read failure not unsupported`() =
+        runTest(testDispatcher) {
+            val vm = buildVm()
+            // Nonexistent path: the provider cannot open the stream at all —
+            // the same shape as a revoked grant or dead cloud provider.
+            val missing = File(context.cacheDir, "vm_test_missing_" + System.nanoTime() + ".jpg")
+            vm.onPhotoPicked(Uri.fromFile(missing))
+
+            assertEquals(AppScreen.Pick, vm.uiState.screen)
+            assertNull(vm.uiState.selectedUri)
+            assertEquals(
+                context.getString(com.exactuploadfixer.R.string.pick_error_unreadable),
+                vm.uiState.pickError
+            )
+        }
 
     // ── onProcessClick — success path ─────────────────────────────────────────
 

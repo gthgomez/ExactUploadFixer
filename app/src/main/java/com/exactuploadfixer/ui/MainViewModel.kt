@@ -62,23 +62,6 @@ class MainViewModel(
         // Matches the engine's bounded search budget so UI progress advances steadily.
         const val PROCESSING_PROGRESS_STEPS = 48f
 
-        /** Magic-byte gate: JPEG SOI, PNG signature, RIFF/WEBP, ISO-BMFF HEIF brand. */
-        fun headerHasSupportedSignature(header: ByteArray, length: Int): Boolean {
-            if (length >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() &&
-                header[2] == 0xFF.toByte()
-            ) return true
-            val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-            if (length >= 8 && png.indices.all { header[it] == png[it] }) return true
-            if (length >= 12 &&
-                header[0] == 'R'.code.toByte() && header[8] == 'W'.code.toByte() &&
-                header[9] == 'E'.code.toByte() && header[10] == 'B'.code.toByte() &&
-                header[11] == 'P'.code.toByte()
-            ) return true
-            if (length >= 12 && String(header, 4, 4) == "ftyp") {
-                return String(header, 8, 4) in setOf("heic", "heix", "hevc", "hevx", "mif1", "msf1")
-            }
-            return false
-        }
     }
 
     init {
@@ -117,25 +100,25 @@ class MainViewModel(
         // A new pick invalidates any in-flight run for the previous photo
         cancelProcessing()
 
-        // Reject unsupported files before navigating away from PickScreen.
-        // Mirrors ImageFormat.isSupported without importing from processing.*:
-        // the FILE HEADER is the ground truth — a declared MIME type is never
+        // Reject bad files before navigating away from PickScreen, with the
+        // SAME classification the engine uses (one stream open): an
+        // unopenable/empty source (revoked grant, dead cloud provider) is a
+        // read failure, not a format problem — a declared MIME type is never
         // sufficient on its own (mislabeled files are common).
-        val supported = try {
-            contentResolver.openInputStream(uri)?.use { stream ->
-                val header = ByteArray(12)
-                var read = 0
-                while (read < header.size) {
-                    val n = stream.read(header, read, header.size - read)
-                    if (n < 0) break
-                    read += n
-                }
-                headerHasSupportedSignature(header, read)
-            } ?: false
-        } catch (_: Exception) { false }
+        val pickProblem = try {
+            when (com.exactuploadfixer.processing.ImageFormat.classify(getApplication(), uri)) {
+                com.exactuploadfixer.processing.ImageFormatProbe.Unreadable ->
+                    getApplication<Application>().getString(R.string.pick_error_unreadable)
+                com.exactuploadfixer.processing.ImageFormatProbe.Unsupported ->
+                    getApplication<Application>().getString(R.string.pick_error_jpeg_only)
+                is com.exactuploadfixer.processing.ImageFormatProbe.Supported -> null
+            }
+        } catch (_: Exception) {
+            getApplication<Application>().getString(R.string.pick_error_unreadable)
+        }
 
-        if (!supported) {
-            uiState = uiState.copy(pickError = getApplication<Application>().getString(R.string.pick_error_jpeg_only))
+        if (pickProblem != null) {
+            uiState = uiState.copy(pickError = pickProblem)
             return
         }
 
@@ -163,7 +146,9 @@ class MainViewModel(
     // ── Edit screen ──────────────────────────────────────────────────────────
 
     fun onMaxSizeChanged(value: String) {
-        val filtered = value.filter { it.isDigit() }.take(4)
+        // 8 digits: preset fills like "10000" (passport 10 MB ceiling) must
+        // survive editing — 4 digits truncated them to "1000".
+        val filtered = value.filter { it.isDigit() }.take(8)
         uiState = uiState.copy(maxSizeKbInput = filtered, selectedPreset = null, editError = null)
     }
 
