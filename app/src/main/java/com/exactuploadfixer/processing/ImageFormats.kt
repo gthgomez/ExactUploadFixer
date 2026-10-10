@@ -35,6 +35,22 @@ enum class ImageFormat(val mime: String) {
          */
         fun isSupported(context: Context, uri: Uri): Boolean = detect(context, uri) != null
 
+        /**
+         * True when the URI can be opened and yields at least one byte.
+         * Distinguishes "provider/stream unreadable" (a decode problem →
+         * DecodeFailed) from "readable but unknown header" (a format problem →
+         * UnsupportedMimeType). A SecurityException from a revoked grant or an
+         * empty cloud-provider stream is NOT a format issue and must not be
+         * reported as one.
+         */
+        fun readable(context: Context, uri: Uri): Boolean = try {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.read() != -1
+            } == true
+        } catch (_: Exception) {
+            false
+        }
+
         /** Detected format from magic bytes, or null when unsupported/unreadable. */
         fun detect(context: Context, uri: Uri): ImageFormat? = detectByMagic(context, uri)
 

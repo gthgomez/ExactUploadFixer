@@ -97,4 +97,20 @@ class ImageFormatsTest {
         assertTrue(ImageFormat.WEBP.hasAlpha)
         assertFalse(ImageFormat.JPEG.hasAlpha)
     }
+
+    @Test
+    fun `readable distinguishes unreadable uri from readable unsupported file`() {
+        // A nonexistent path: provider can't open it → unreadable. This must be
+        // classified as a decode problem (DecodeFailed upstream), never as
+        // "unsupported format".
+        val missing = android.net.Uri.fromFile(File(tmp.root, "does-not-exist.jpg"))
+        assertFalse(ImageFormat.readable(context(), missing))
+        assertFalse(ImageFormat.isSupported(context(), missing))
+
+        // A real file with an UNUSABLE header: readable, but unsupported.
+        val gif = File(tmp.root, "test.gif")
+        FileOutputStream(gif).use { it.write("GIF89a".toByteArray()); it.write(ByteArray(8)) }
+        assertTrue(ImageFormat.readable(context(), android.net.Uri.fromFile(gif)))
+        assertFalse(ImageFormat.isSupported(context(), android.net.Uri.fromFile(gif)))
+    }
 }

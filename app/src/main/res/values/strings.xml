@@ -35,7 +35,7 @@
     <string name="edit_fitmode_fit_desc">Keeps the whole image; white padding added</string>
     <string name="edit_dimensions_helper">Sets the exact output size. Choose below whether the photo is cropped to fill it, or fitted whole with padding.</string>
     <string name="edit_note_placeholder">Enter a size above, or pick a preset below.</string>
-    <string name="edit_note_jpeg_preserved">Output is JPEG — transparency becomes white; no format change</string>
+    <string name="edit_note_jpeg_preserved">Output is JPEG. PNG/WebP/HEIC input is converted, and transparency becomes white</string>
     <string name="edit_note_quality_preserved">Quality is preserved as far as the limit allows</string>
     <string name="edit_presets_locked_hint">Each preset encodes sourced size limits for one specific upload route, with its source and verification date. Tap to see the lifetime purchase.</string>
     <string name="edit_processing_label">Optimising…</string>
