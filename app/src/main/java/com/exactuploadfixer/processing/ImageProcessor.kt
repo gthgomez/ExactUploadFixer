@@ -66,11 +66,16 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
 
         val targetWidth = constraints.targetWidth ?: sourceInfo.effectiveWidth
         val targetHeight = constraints.targetHeight ?: sourceInfo.effectiveHeight
+        // Alpha-capable inputs decode to ARGB_8888 (4 bytes/px); JPEG stays
+        // RGB_565 (2 bytes/px). Budgeting with the wrong bpp underestimates
+        // PNG/WebP/HEIF allocations by 2x.
+        val bytesPerPixel = if (sourceInfo.format?.hasAlpha == true) 4L else BYTES_PER_PIXEL_RGB_565
         val sampleSize = calculateGuardedSampleSize(
             sourceWidth = sourceInfo.effectiveWidth,
             sourceHeight = sourceInfo.effectiveHeight,
             targetWidth = targetWidth,
-            targetHeight = targetHeight
+            targetHeight = targetHeight,
+            bytesPerPixel = bytesPerPixel
         )
 
         var rawBitmap: Bitmap? = null
@@ -78,7 +83,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
         var passBitmap: Bitmap? = null
 
         try {
-            rawBitmap = decodeBitmap(sourceUri, sampleSize)
+            rawBitmap = decodeBitmap(sourceUri, sampleSize, alphaCapable = sourceInfo.format?.hasAlpha == true)
                 ?: run {
                     emit(FixResult.Failure(FixFailure.DecodeFailed))
                     return
@@ -88,15 +93,34 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             rawBitmap = null
 
             val working = if (constraints.hasDimensions) {
-                BitmapTransforms.centerCropTo(
-                    upright,
-                    constraints.targetWidth!!,
-                    constraints.targetHeight!!
-                )
+                // Exact dimensions requested. CROP loses edges (scale-to-fill +
+                // center-crop); FIT_PAD preserves the whole image on a white canvas.
+                if (constraints.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD) {
+                    BitmapTransforms.fitWithin(
+                        upright,
+                        constraints.targetWidth!!,
+                        constraints.targetHeight!!
+                    )
+                } else {
+                    BitmapTransforms.centerCropTo(
+                        upright,
+                        constraints.targetWidth!!,
+                        constraints.targetHeight!!
+                    )
+                }
             } else {
                 upright
             }
             workingBitmap = working
+
+            // Output is JPEG (no alpha): composite transparency onto white
+            // deliberately — a bare JPEG encode would turn it black.
+            val opaque = BitmapTransforms.flattenAlphaOntoWhite(working)
+            if (opaque !== working) {
+                workingBitmap = opaque
+                if (passBitmap === working) passBitmap = opaque
+            }
+            val finalWorking = workingBitmap!!
 
             val degradationReasons = mutableListOf<FixDegradation>()
             if (!constraints.hasDimensions && sampleSize > 1) {
@@ -107,7 +131,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
                 )
             }
 
-            passBitmap = working
+            passBitmap = finalWorking
             var cumulativeScaleFactor = 1f
             var totalIterations = 0
 
@@ -205,6 +229,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
     }
 
     private fun readSourceInfo(uri: Uri): SourceInfo? {
+        val format = ImageFormat.detect(context, uri)
         val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { stream ->
             BitmapFactory.decodeStream(stream, null, boundsOptions)
@@ -225,15 +250,20 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
         return SourceInfo(
             effectiveWidth = effectiveWidth,
             effectiveHeight = effectiveHeight,
-            transform = transform
+            transform = transform,
+            format = format
         )
     }
 
-    private fun decodeBitmap(uri: Uri, sampleSize: Int): Bitmap? {
+    private fun decodeBitmap(uri: Uri, sampleSize: Int, alphaCapable: Boolean): Bitmap? {
+        // Alpha-capable inputs (PNG/WebP/HEIC) must decode to ARGB_8888 so
+        // transparency can be composited onto white explicitly. JPEG has no
+        // alpha and keeps the 2-bytes-per-pixel RGB_565 memory win.
         val decodeOptions = BitmapFactory.Options().apply {
             inJustDecodeBounds = false
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.RGB_565
+            inPreferredConfig =
+                if (alphaCapable) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
         }
 
         return context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -245,7 +275,8 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
         sourceWidth: Int,
         sourceHeight: Int,
         targetWidth: Int,
-        targetHeight: Int
+        targetHeight: Int,
+        bytesPerPixel: Long
     ): Int {
         var sampleSize = BitmapTransforms.calculateSampleSize(
             sourceWidth = sourceWidth,
@@ -256,8 +287,9 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
 
         while (
             estimatedPixelCount(sourceWidth, sourceHeight, sampleSize) > MAX_WORKING_PIXELS ||
-            estimatedBitmapBytes(sourceWidth, sourceHeight, sampleSize) > MAX_WORKING_BITMAP_BYTES
+            estimatedBitmapBytes(sourceWidth, sourceHeight, sampleSize, bytesPerPixel) > MAX_WORKING_BITMAP_BYTES
         ) {
+            if (estimatedPixelCount(sourceWidth, sourceHeight, sampleSize) == 1L) break
             sampleSize *= 2
         }
         return sampleSize
@@ -296,8 +328,8 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
         return scaledWidth * scaledHeight
     }
 
-    private fun estimatedBitmapBytes(width: Int, height: Int, sampleSize: Int): Long =
-        estimatedPixelCount(width, height, sampleSize) * BYTES_PER_PIXEL_RGB_565
+    private fun estimatedBitmapBytes(width: Int, height: Int, sampleSize: Int, bytesPerPixel: Long): Long =
+        estimatedPixelCount(width, height, sampleSize) * bytesPerPixel
 
     private fun recycle(bitmap: Bitmap?) {
         if (bitmap != null && !bitmap.isRecycled) {
@@ -315,7 +347,7 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
             return FixFailure.InvalidTargetDimensions
         }
 
-        if (!ExifReader.isJpeg(context, uri)) return FixFailure.UnsupportedMimeType
+        if (!ImageFormat.isSupported(context, uri)) return FixFailure.UnsupportedMimeType
 
         return null
     }
@@ -323,7 +355,8 @@ class ImageProcessor(private val context: Context) : UploadFixerEngine {
     private data class SourceInfo(
         val effectiveWidth: Int,
         val effectiveHeight: Int,
-        val transform: ExifTransform
+        val transform: ExifTransform,
+        val format: ImageFormat?
     )
 
     private companion object {

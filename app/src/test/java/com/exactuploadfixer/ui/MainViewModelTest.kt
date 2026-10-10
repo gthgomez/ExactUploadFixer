@@ -83,6 +83,9 @@ class MainViewModelTest {
         billing
     )
 
+    private val context: android.content.Context =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext()
+
     private fun buildJpegUri(): Uri {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val file = File(context.cacheDir, "vm_test_${System.nanoTime()}.jpg")
@@ -187,6 +190,34 @@ class MainViewModelTest {
         assertNull(vm.uiState.resultFailure)
         assertNull(vm.uiState.editError)
         assertEquals("", vm.uiState.maxSizeKbInput)
+    }
+
+    @Test
+    fun `onPhotoPicked accepts a PNG file`() = runTest(testDispatcher) {
+        val vm = buildVm()
+        val file = File(context.cacheDir, "vm_test_png_\${System.nanoTime()}.png")
+        val bitmap = Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888)
+        FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        cleanupFiles += file
+
+        vm.onPhotoPicked(Uri.fromFile(file))
+
+        assertEquals(AppScreen.Edit, vm.uiState.screen)
+    }
+
+    @Test
+    fun `onPhotoPicked rejects a GIF file with explicit error`() = runTest(testDispatcher) {
+        val vm = buildVm()
+        val file = File(context.cacheDir, "vm_test_gif_\${System.nanoTime()}.gif")
+        FileOutputStream(file).use { it.write("GIF89a.......".toByteArray()) }
+        cleanupFiles += file
+
+        vm.onPhotoPicked(Uri.fromFile(file))
+
+        assertEquals(AppScreen.Pick, vm.uiState.screen)
+        assertNotNull(vm.uiState.pickError)
+        assertNull(vm.uiState.selectedUri)
     }
 
     // ── onProcessClick — success path ─────────────────────────────────────────
@@ -378,10 +409,11 @@ class MainViewModelTest {
 
         assertEquals(preset.width.toString(), vm.uiState.widthInput)
         assertEquals(preset.height.toString(), vm.uiState.heightInput)
-        // Filled with conservative DECIMAL KB (rounded up) — display/fallback only;
-        // processing uses the preset's exact byte cap.
+        // Filled with conservative DECIMAL KB (rounded DOWN) — display/fallback
+        // only; editing it can only lower the effective limit, never exceed the
+        // sourced cap. Processing uses the preset's exact byte cap.
         assertEquals(
-            (preset.maxBytes + 999L) / 1000L,
+            preset.maxBytes / 1000L,
             vm.uiState.maxSizeKbInput.toLongOrNull()
         )
         assertEquals(preset, vm.uiState.selectedPreset)
@@ -617,6 +649,31 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, engine.callCount)
+    }
+
+    // ── Fit mode plumbing ──────────────────────────────────────────────────────
+
+    @Test
+    fun `onFitModeChanged FIT_PAD reaches the engine constraints`() = runTest(testDispatcher) {
+        val engine = FakeUploadFixerEngine()
+        val vm = buildVm(engine = engine)
+        vm.onPhotoPicked(buildJpegUri())
+        vm.onMaxSizeChanged("500")
+        vm.onWidthChanged("600")
+        vm.onHeightChanged("600")
+
+        vm.onFitModeChanged(com.exactuploadfixer.domain.FitMode.FIT_PAD)
+        vm.onProcessClick()
+        advanceUntilIdle()
+
+        assertEquals(
+            com.exactuploadfixer.domain.FitMode.FIT_PAD,
+            engine.lastConstraints!!.fitMode
+        )
+        assertEquals(
+            com.exactuploadfixer.domain.FitMode.CROP,
+            com.exactuploadfixer.domain.FitMode.DEFAULT
+        )
     }
 
     // ── In-flight cancellation / stale-result resilience ──────────────────────

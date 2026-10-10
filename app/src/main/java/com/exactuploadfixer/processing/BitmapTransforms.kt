@@ -86,6 +86,60 @@ object BitmapTransforms {
     }
 
     /**
+     * Scale-to-fit inside [targetWidth] × [targetHeight], centered on a solid
+     * [background]-colored canvas. The entire source image and its aspect ratio
+     * are preserved; any leftover space is padding.
+     *
+     * The output is always exactly targetWidth × targetHeight. Intermediates are
+     * bounded: the scaled bitmap never exceeds the target size.
+     */
+    fun fitWithin(
+        source: Bitmap,
+        targetWidth: Int,
+        targetHeight: Int,
+        background: Int = android.graphics.Color.WHITE
+    ): Bitmap {
+        if (source.width == targetWidth && source.height == targetHeight) return source
+
+        val fitScale = minOf(
+            targetWidth.toFloat() / source.width,
+            targetHeight.toFloat() / source.height
+        )
+        val scaledW = (source.width * fitScale).roundToInt().coerceIn(1, targetWidth)
+        val scaledH = (source.height * fitScale).roundToInt().coerceIn(1, targetHeight)
+
+        val scaled = if (scaledW == source.width && scaledH == source.height) {
+            source
+        } else {
+            Bitmap.createScaledBitmap(source, scaledW, scaledH, true)
+        }
+        if (scaled !== source) source.recycle()
+
+        val result = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(result)
+        canvas.drawColor(background)
+        canvas.drawBitmap(scaled, (targetWidth - scaledW) / 2f, (targetHeight - scaledH) / 2f, null)
+        if (scaled !== result) scaled.recycle()
+        return result
+    }
+
+    /**
+     * Flattens alpha onto a solid white background. JPEG has no alpha channel;
+     * encoding an alpha bitmap as JPEG turns transparent pixels black — this
+     * makes the white-composite explicit instead of format-accidental.
+     * Returns the source unchanged when it has no alpha channel.
+     */
+    fun flattenAlphaOntoWhite(source: Bitmap): Bitmap {
+        if (!source.hasAlpha()) return source
+        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(result)
+        canvas.drawColor(android.graphics.Color.WHITE)
+        canvas.drawBitmap(source, 0f, 0f, null)
+        source.recycle()
+        return result
+    }
+
+    /**
      * Largest power-of-2 sample size that keeps decoded bitmap ≥ target dimensions.
      *
      * Risk addressed: ChatGPT Step 1, Risk #3 — large bitmaps trigger OOM.

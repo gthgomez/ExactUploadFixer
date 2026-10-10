@@ -20,16 +20,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import com.exactuploadfixer.R
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -72,6 +75,7 @@ fun EditScreen(
     onWidthChanged: (String) -> Unit,
     onHeightChanged: (String) -> Unit,
     onPresetSelected: (Preset) -> Unit,
+    onFitModeChanged: (com.exactuploadfixer.domain.FitMode) -> Unit,
     onEntitlementRefreshRequested: () -> Unit,
     onProcessClick: () -> Unit,
     onBuyProClick: (Activity) -> Boolean,
@@ -126,6 +130,11 @@ fun EditScreen(
         InlinePhotoPreview(
             uri = ui.selectedUri,
             sourceSizeBytes = ui.sourceSizeBytes,
+            // Mirror the requested output geometry: frame matches the exact
+            // aspect ratio once both dimensions are entered.
+            targetAspect = ui.widthInput.toIntOrNull()?.takeIf { it > 0 }
+                ?.let { w -> ui.heightInput.toIntOrNull()?.takeIf { it > 0 }?.let { h -> w.toFloat() / h } },
+            fitToFrame = ui.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD,
             onExpandClick = { showPreviewSheet = true }
         )
 
@@ -309,6 +318,42 @@ fun EditScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondaryHelperText()
                     )
+
+                    // How exact dimensions are applied — only meaningful when
+                    // both dimensions are entered. Crop = fill (edges may be
+                    // lost, classic center-crop); Fit = whole image preserved
+                    // on white padding. Default stays Crop (prior behavior).
+                    if (ui.widthInput.isNotEmpty() && ui.heightInput.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                stringResource(R.string.edit_fitmode_label),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                FitModeOption(
+                                    selected = ui.fitMode == com.exactuploadfixer.domain.FitMode.CROP,
+                                    onClick = { onFitModeChanged(com.exactuploadfixer.domain.FitMode.CROP) },
+                                    title = stringResource(R.string.edit_fitmode_crop),
+                                    description = stringResource(R.string.edit_fitmode_crop_desc),
+                                    enabled = !ui.isProcessing,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FitModeOption(
+                                    selected = ui.fitMode == com.exactuploadfixer.domain.FitMode.FIT_PAD,
+                                    onClick = { onFitModeChanged(com.exactuploadfixer.domain.FitMode.FIT_PAD) },
+                                    title = stringResource(R.string.edit_fitmode_fit),
+                                    description = stringResource(R.string.edit_fitmode_fit_desc),
+                                    enabled = !ui.isProcessing,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -560,15 +605,62 @@ fun EditScreen(
     )
 }
 
+// ── Fit-mode selectable card ──────────────────────────────────────────────────
+
+@Composable
+private fun FitModeOption(
+    selected: Boolean,
+    onClick: () -> Unit,
+    title: String,
+    description: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val border = if (selected) {
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    }
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        else MaterialTheme.colorScheme.surface,
+        border = border,
+        modifier = modifier.semantics { role = Role.RadioButton }
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondaryHelperText()
+            )
+        }
+    }
+}
+
 // ── Inline photo preview ──────────────────────────────────────────────────────
 
 @Composable
 private fun InlinePhotoPreview(
     uri: android.net.Uri?,
     sourceSizeBytes: Long?,
+    targetAspect: Float?,
+    fitToFrame: Boolean,
     onExpandClick: () -> Unit
 ) {
     if (uri == null) return
+    // Crop mode only applies with exact dimensions; without them the preview
+    // frames the whole photo and no crop claim is implied.
+    val dimensionsEntered = targetAspect != null
+    val showCrop = dimensionsEntered && !fitToFrame
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -586,10 +678,30 @@ private fun InlinePhotoPreview(
                 model = uri,
                 contentDescription = "Selected photo",
                 modifier = Modifier
-                    .size(68.dp)
+                    .let { base ->
+                        if (targetAspect != null) {
+                            base
+                                .widthIn(max = 96.dp)
+                                .aspectRatio(targetAspect, matchHeightConstraintsFirst = false)
+                                .heightIn(max = 68.dp)
+                        } else {
+                            base.size(68.dp)
+                        }
+                    }
                     .clip(RoundedCornerShape(9.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentScale = ContentScale.Crop
+                    .background(
+                        // Fit mode pads with white — mirror that in the preview
+                        if (fitToFrame && dimensionsEntered) androidx.compose.ui.graphics.Color.White
+                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                    ),
+                contentScale = when {
+                    // Exact dims + crop: fill the exact output frame (accurate)
+                    showCrop -> ContentScale.Crop
+                    // Exact dims + fit: whole image inside the output frame
+                    dimensionsEntered && fitToFrame -> ContentScale.Fit
+                    // No dimensions: show the whole photo without a crop claim
+                    else -> ContentScale.Fit
+                }
             )
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -604,8 +716,8 @@ private fun InlinePhotoPreview(
                         "%.1f MB".format(sourceSizeBytes / 1_048_576f)
                     else
                         "${formatKb(sourceSizeBytes)} KB"
-                    "$sizeLabel · JPEG"
-                } else "JPEG"
+                    "$sizeLabel · → JPEG"
+                } else "→ JPEG"
                 Text(
                     meta,
                     style = MaterialTheme.typography.bodySmall,

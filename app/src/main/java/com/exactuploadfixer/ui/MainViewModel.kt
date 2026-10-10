@@ -61,6 +61,24 @@ class MainViewModel(
     private companion object {
         // Matches the engine's bounded search budget so UI progress advances steadily.
         const val PROCESSING_PROGRESS_STEPS = 48f
+
+        /** Magic-byte gate: JPEG SOI, PNG signature, RIFF/WEBP, ISO-BMFF HEIF brand. */
+        fun headerHasSupportedSignature(header: ByteArray, length: Int): Boolean {
+            if (length >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() &&
+                header[2] == 0xFF.toByte()
+            ) return true
+            val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+            if (length >= 8 && png.indices.all { header[it] == png[it] }) return true
+            if (length >= 12 &&
+                header[0] == 'R'.code.toByte() && header[8] == 'W'.code.toByte() &&
+                header[9] == 'E'.code.toByte() && header[10] == 'B'.code.toByte() &&
+                header[11] == 'P'.code.toByte()
+            ) return true
+            if (length >= 12 && String(header, 4, 4) == "ftyp") {
+                return String(header, 8, 4) in setOf("heic", "heix", "hevc", "hevx", "mif1", "msf1")
+            }
+            return false
+        }
     }
 
     init {
@@ -99,21 +117,24 @@ class MainViewModel(
         // A new pick invalidates any in-flight run for the previous photo
         cancelProcessing()
 
-        // Reject non-JPEG before navigating away from PickScreen.
-        // Mirrors ExifReader.isJpeg without importing from processing.*:
-        // check MIME type first, fall back to SOI magic bytes (FF D8 FF).
-        val isJpeg = contentResolver.getType(uri) == "image/jpeg" || try {
+        // Reject unsupported files before navigating away from PickScreen.
+        // Mirrors ImageFormat.isSupported without importing from processing.*:
+        // the FILE HEADER is the ground truth — a declared MIME type is never
+        // sufficient on its own (mislabeled files are common).
+        val supported = try {
             contentResolver.openInputStream(uri)?.use { stream ->
-                val header = ByteArray(3)
-                val read = stream.read(header)
-                read == 3 &&
-                    header[0] == 0xFF.toByte() &&
-                    header[1] == 0xD8.toByte() &&
-                    header[2] == 0xFF.toByte()
+                val header = ByteArray(12)
+                var read = 0
+                while (read < header.size) {
+                    val n = stream.read(header, read, header.size - read)
+                    if (n < 0) break
+                    read += n
+                }
+                headerHasSupportedSignature(header, read)
             } ?: false
         } catch (_: Exception) { false }
 
-        if (!isJpeg) {
+        if (!supported) {
             uiState = uiState.copy(pickError = getApplication<Application>().getString(R.string.pick_error_jpeg_only))
             return
         }
@@ -134,7 +155,8 @@ class MainViewModel(
             maxSizeKbInput = "",
             widthInput = "",
             heightInput = "",
-            selectedPreset = null
+            selectedPreset = null,
+            fitMode = com.exactuploadfixer.domain.FitMode.DEFAULT
         )
     }
 
@@ -155,12 +177,18 @@ class MainViewModel(
         uiState = uiState.copy(heightInput = filtered, selectedPreset = null, editError = null)
     }
 
+    /** Chooses how exact dimensions are applied (only meaningful with dimensions). */
+    fun onFitModeChanged(mode: com.exactuploadfixer.domain.FitMode) {
+        uiState = uiState.copy(fitMode = mode, editError = null)
+    }
+
     fun onPresetSelected(preset: Preset) {
         // Fill the size field with a conservative DECIMAL KB value derived from the
-        // preset's exact byte cap (rounded up), so re-processing through the input
-        // path never exceeds the preset limit. Processing itself uses preset.maxBytes
-        // directly (see onProcessClick) — the field is display/fallback only.
-        val conservativeKb = (preset.maxBytes + FixConstraints.BYTES_PER_KB - 1) / FixConstraints.BYTES_PER_KB
+        // preset's exact byte cap, rounded DOWN so that editing a field afterwards
+        // (which clears the preset and falls back to this number) can only ever
+        // LOWER the effective limit — never silently exceed the sourced cap.
+        // Processing itself uses preset.maxBytes directly (see onProcessClick).
+        val conservativeKb = preset.maxBytes / FixConstraints.BYTES_PER_KB
         uiState = uiState.copy(
             selectedPreset = preset,
             widthInput = preset.width.toString(),
@@ -196,7 +224,12 @@ class MainViewModel(
             return
         }
 
-        val constraints = FixConstraints(maxBytes = maxBytes, targetWidth = w, targetHeight = h)
+        val constraints = FixConstraints(
+            maxBytes = maxBytes,
+            targetWidth = w,
+            targetHeight = h,
+            fitMode = uiState.fitMode
+        )
         uiState = uiState.copy(
             isProcessing = true,
             editError = null,

@@ -4,15 +4,15 @@
 
     <!-- ── PickScreen ── -->
     <string name="pick_headline">Make this upload pass.</string>
-    <string name="pick_subtitle">Resize a JPEG to a target size in KB or pixels. Everything stays on your device.</string>
+    <string name="pick_subtitle">Resize a photo to a target size in KB or pixels. JPEG, PNG, and WebP supported. Everything stays on your device.</string>
     <string name="pick_badge_on_device">On-device</string>
-    <string name="pick_badge_jpeg_only">JPEG only</string>
+    <string name="pick_badge_jpeg_only">JPEG · PNG · WebP</string>
     <string name="pick_badge_passport_ready">Passport spec sizes</string>
     <string name="pick_cta">Choose Photo</string>
     <string name="pick_footer_free">Fix any upload for free</string>
     <string name="pick_footer_pricing">Free to try. Lifetime purchase unlocks the preset library.</string>
     <string name="pick_privacy_link">Privacy policy</string>
-    <string name="pick_error_jpeg_only">Only JPEG files are supported. Select a .jpg or .jpeg photo.</string>
+    <string name="pick_error_jpeg_only">Unsupported file. Select a JPEG (.jpg/.jpeg), PNG, or WebP image.</string>
 
     <!-- ── EditScreen ── -->
     <string name="edit_section_custom_size">Custom size</string>
@@ -28,9 +28,14 @@
     <string name="edit_dimensions_hide">Hide Dimensions</string>
     <string name="edit_width_label">Width px</string>
     <string name="edit_height_label">Height px</string>
-    <string name="edit_dimensions_helper">The image will be scaled to fit inside these dimensions.</string>
+    <string name="edit_fitmode_label">When applying exact dimensions</string>
+    <string name="edit_fitmode_crop">Crop to fill</string>
+    <string name="edit_fitmode_crop_desc">Fills the exact size; edges may be trimmed</string>
+    <string name="edit_fitmode_fit">Fit with padding</string>
+    <string name="edit_fitmode_fit_desc">Keeps the whole image; white padding added</string>
+    <string name="edit_dimensions_helper">Sets the exact output size. Choose below whether the photo is cropped to fill it, or fitted whole with padding.</string>
     <string name="edit_note_placeholder">Enter a size above, or pick a preset below.</string>
-    <string name="edit_note_jpeg_preserved">Output stays JPEG — no format change</string>
+    <string name="edit_note_jpeg_preserved">Output is JPEG — transparency becomes white; no format change</string>
     <string name="edit_note_quality_preserved">Quality is preserved as far as the limit allows</string>
     <string name="edit_presets_locked_hint">Each preset encodes sourced size limits for one specific upload route, with its source and verification date. Tap to see the lifetime purchase.</string>
     <string name="edit_processing_label">Optimising…</string>
@@ -119,7 +124,7 @@
     <string name="failure_detail_below_min">This requirement has a minimum file size, and the photo cannot reach it without adding quality that is not there.</string>
     <string name="failure_remedy_below_min">Try the original, unedited photo — its file is usually large enough.</string>
     <string name="failure_detail_compression">The image cannot be compressed to this size without becoming unusable.</string>
-    <string name="failure_detail_mime">Only JPEG files are supported. The selected file is a different format.</string>
+    <string name="failure_detail_mime">The selected file is not a supported image (JPEG, PNG, or WebP), or it is corrupted.</string>
     <string name="failure_detail_timeout">Processing this image took longer than the safe limit allows.</string>
     <string name="failure_detail_decode">The file could not be decoded. It may be corrupt or incomplete.</string>
     <string name="failure_detail_memory">This image is too large to process on this device.</string>
@@ -130,7 +135,7 @@
 
     <!-- Failure remedies -->
     <string name="failure_remedy_compression">Try raising the size limit, or entering smaller dimensions.</string>
-    <string name="failure_remedy_mime">Select a JPEG file (.jpg or .jpeg).</string>
+    <string name="failure_remedy_mime">Select a JPEG, PNG, or WebP image, or re-export the file from the source app.</string>
     <string name="failure_remedy_timeout">Try a smaller image, or raise the size limit to reduce processing work.</string>
     <string name="failure_remedy_decode">Try selecting the file again. If it fails again, the file may be damaged.</string>
     <string name="failure_remedy_memory">Try a lower-resolution version of the image.</string>
