@@ -157,10 +157,11 @@ class MainViewModel(
 
     fun onPresetSelected(preset: Preset) {
         // Fill the size field with a conservative DECIMAL KB value derived from the
-        // preset's exact byte cap (rounded up), so re-processing through the input
-        // path never exceeds the preset limit. Processing itself uses preset.maxBytes
-        // directly (see onProcessClick) — the field is display/fallback only.
-        val conservativeKb = (preset.maxBytes + FixConstraints.BYTES_PER_KB - 1) / FixConstraints.BYTES_PER_KB
+        // preset's exact byte cap, rounded DOWN so that editing a field afterwards
+        // (which clears the preset and falls back to this number) can only ever
+        // LOWER the effective limit — never silently exceed the sourced cap.
+        // Processing itself uses preset.maxBytes directly (see onProcessClick).
+        val conservativeKb = preset.maxBytes / FixConstraints.BYTES_PER_KB
         uiState = uiState.copy(
             selectedPreset = preset,
             widthInput = preset.width.toString(),
@@ -174,9 +175,10 @@ class MainViewModel(
         if (uiState.isProcessing) return
         val uri = uiState.selectedUri ?: return
 
-        // Presets carry an exact, source-verified byte cap — use it directly so the
-        // KB field never round-trips the limit lossily (e.g. DV 240,000 bytes).
-        // Free-typed values are decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
+        // Presets carry exact, source-verified byte bounds — use them directly so
+        // the KB field never round-trips the limits lossily (e.g. DV 240,000
+        // bytes; passport renewal 55,296–10,000,000). Free-typed values are
+        // decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
         val selectedPreset = uiState.selectedPreset
         val maxBytes = selectedPreset?.maxBytes
             ?: uiState.maxSizeKbInput.toLongOrNull()?.let { it * FixConstraints.BYTES_PER_KB }
@@ -184,6 +186,7 @@ class MainViewModel(
             uiState = uiState.copy(editError = "Enter a valid max file size in KB")
             return
         }
+        val minBytes = selectedPreset?.minBytes ?: 0L
 
         val w = uiState.widthInput.toIntOrNull()
         val h = uiState.heightInput.toIntOrNull()
@@ -196,7 +199,12 @@ class MainViewModel(
             return
         }
 
-        val constraints = FixConstraints(maxBytes = maxBytes, targetWidth = w, targetHeight = h)
+        val constraints = FixConstraints(
+            maxBytes = maxBytes,
+            minBytes = minBytes,
+            targetWidth = w,
+            targetHeight = h
+        )
         uiState = uiState.copy(
             isProcessing = true,
             editError = null,
