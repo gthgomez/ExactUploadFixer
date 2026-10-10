@@ -202,9 +202,10 @@ class MainViewModel(
         if (uiState.isProcessing) return
         val uri = uiState.selectedUri ?: return
 
-        // Presets carry an exact, source-verified byte cap — use it directly so the
-        // KB field never round-trips the limit lossily (e.g. DV 240,000 bytes).
-        // Free-typed values are decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
+        // Presets carry exact, source-verified byte bounds — use them directly so
+        // the KB field never round-trips the limits lossily (e.g. DV 240,000
+        // bytes; passport renewal 55,296–10,000,000). Free-typed values are
+        // decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
         val selectedPreset = uiState.selectedPreset
         val maxBytes = selectedPreset?.maxBytes
             ?: uiState.maxSizeKbInput.toLongOrNull()?.let { it * FixConstraints.BYTES_PER_KB }
@@ -212,6 +213,7 @@ class MainViewModel(
             uiState = uiState.copy(editError = "Enter a valid max file size in KB")
             return
         }
+        val minBytes = selectedPreset?.minBytes ?: 0L
 
         val w = uiState.widthInput.toIntOrNull()
         val h = uiState.heightInput.toIntOrNull()
@@ -226,6 +228,7 @@ class MainViewModel(
 
         val constraints = FixConstraints(
             maxBytes = maxBytes,
+            minBytes = minBytes,
             targetWidth = w,
             targetHeight = h,
             fitMode = uiState.fitMode

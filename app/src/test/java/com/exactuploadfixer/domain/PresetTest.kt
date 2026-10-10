@@ -115,6 +115,22 @@ class PresetTest {
             "https://travel.state.gov/content/travel/en/passports/have-passport/renew-online.html",
             p.authorityUrl
         )
+        // Audit guard: the renewal route publishes byte bounds only. Geometry
+        // (600×600 square / 1200×1200) belongs to the visa route and must be
+        // presented as an app-chosen convenience, never an official rule.
+        assertTrue(
+            "preset must disclaim the square geometry as app-chosen",
+            p.note.contains("APP-CHOSEN", ignoreCase = true)
+        )
+        assertTrue(
+            "applicationContext must separate OFFICIAL from NOT-official claims",
+            p.applicationContext.contains("OFFICIAL") &&
+                p.applicationContext.contains("NOT official")
+        )
+        assertTrue(
+            "renewal route accepts more formats than JPEG; note must not claim JPEG-only",
+            p.note.contains("PNG", ignoreCase = true)
+        )
     }
 
     @Test

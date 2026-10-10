@@ -27,10 +27,14 @@ Per the status contract (90-day review threshold for external photo presets),
 `Preset.needsRecheck(asOf)` flags any preset whose `lastVerified` is more than
 90 days old. The UI renders "Source last verified … — recheck recommended" for
 such presets. This threshold is a maintenance policy, **not** a guarantee that a
-rule remains valid inside the window. As of 2026-10-09 the sourced presets were
-re-verified against their live pages (LinkedIn Help, travel.state.gov visa
-digital-image + DV pages, travel.state.gov passport online-renewal page); the
-passport cap was CORRECTED from 500 KiB to the published ≤ 240 kB (240000 bytes).
+rule remains valid inside the window. As of 2026-10-09/10 the sourced presets
+were re-verified against their live pages (LinkedIn Help, travel.state.gov visa
+digital-image + DV pages, travel.state.gov passport online-renewal page). The
+passport preset was rebuilt as `passport_online_renewal` around its actual
+published bound (54 KB–10 MB) after two earlier drafts got it wrong (first a
+500 KiB app cap, then a wrong reuse of the visa 240 kB cap). Lesson recorded:
+a source URL must support the SPECIFIC route, units, and format claimed —
+not just the general topic.
 
 ## Non-guarantee disclaimer (rendered in-app)
 

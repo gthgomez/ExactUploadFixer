@@ -409,9 +409,8 @@ class MainViewModelTest {
 
         assertEquals(preset.width.toString(), vm.uiState.widthInput)
         assertEquals(preset.height.toString(), vm.uiState.heightInput)
-        // Filled with conservative DECIMAL KB (rounded DOWN) — display/fallback
-        // only; editing it can only lower the effective limit, never exceed the
-        // sourced cap. Processing uses the preset's exact byte cap.
+        // Filled with conservative DECIMAL KB (rounded DOWN) — editing a field
+        // afterwards clears the preset and can only LOWER the effective limit.
         assertEquals(
             preset.maxBytes / 1000L,
             vm.uiState.maxSizeKbInput.toLongOrNull()
@@ -755,5 +754,44 @@ class MainViewModelTest {
         billing.simulatePriceLoaded("$2.99")
         advanceUntilIdle()
         assertEquals("$2.99", vm.uiState.priceLabel)
+    }
+
+    // ── minBytes propagation (audit P0: preset minimum must reach the engine) ──
+
+    @Test
+    fun `passport preset minimum AND maximum byte bounds reach the engine`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val billing = FakeBillingGateway()
+            billing.simulatePurchase()
+            val vm = buildVm(engine = engine, billing = billing)
+            advanceUntilIdle()
+
+            vm.onPhotoPicked(buildJpegUri())
+            val preset = PRESETS.first { it.id == "passport_online_renewal" }
+            assertEquals(55_296L, preset.minBytes)
+            assertEquals(10_000_000L, preset.maxBytes)
+
+            vm.onPresetSelected(preset)
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            val constraints = engine.lastConstraints
+            assertNotNull(constraints)
+            assertEquals("preset minimum must NOT be dropped at the ViewModel", 55_296L, constraints!!.minBytes)
+            assertEquals(10_000_000L, constraints.maxBytes)
+        }
+
+    @Test
+    fun `manual input keeps minBytes at zero`() = runTest(testDispatcher) {
+        val engine = FakeUploadFixerEngine()
+        val vm = buildVm(engine = engine)
+        vm.onPhotoPicked(buildJpegUri())
+        vm.onMaxSizeChanged("200")
+        vm.onProcessClick()
+        advanceUntilIdle()
+
+        assertEquals(200_000L, engine.lastConstraints!!.maxBytes)
+        assertEquals(0L, engine.lastConstraints!!.minBytes)
     }
 }
