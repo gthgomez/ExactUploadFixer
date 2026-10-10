@@ -15,13 +15,19 @@ import com.exactuploadfixer.domain.FixConstraints
 import com.exactuploadfixer.domain.FixResult
 import com.exactuploadfixer.domain.Preset
 import com.exactuploadfixer.domain.UploadFixerEngine
+import com.exactuploadfixer.processing.ImageFormat
+import com.exactuploadfixer.processing.ImageFormatProbe
 import kotlinx.coroutines.launch
 
 /**
  * Single ViewModel for the whole app (3-screen linear flow).
  *
  * Isolation rules (ChatGPT Step 6):
- *   - Never imports anything from processing.*
+ *   - Never imports anything from processing.* EXCEPT ImageFormat/ImageFormatProbe:
+ *     pick-time classification must use the SAME probe the engine uses, so the
+ *     picker and engine can never disagree about a file (the earlier mirrored
+ *     local header check drifted — see PR #12 review). Engine internals
+ *     (ImageProcessor, compression) remain invisible.
  *   - Knows UploadFixerEngine (domain interface), not ImageProcessor (impl)
  *   - Knows BillingGateway (interface), not PlayBillingGateway (impl)
  *   - UI reads uiState; never calls engine or billing directly
@@ -105,16 +111,13 @@ class MainViewModel(
         // unopenable/empty source (revoked grant, dead cloud provider) is a
         // read failure, not a format problem — a declared MIME type is never
         // sufficient on its own (mislabeled files are common).
-        val pickProblem = try {
-            when (com.exactuploadfixer.processing.ImageFormat.classify(getApplication(), uri)) {
-                com.exactuploadfixer.processing.ImageFormatProbe.Unreadable ->
-                    getApplication<Application>().getString(R.string.pick_error_unreadable)
-                com.exactuploadfixer.processing.ImageFormatProbe.Unsupported ->
-                    getApplication<Application>().getString(R.string.pick_error_jpeg_only)
-                is com.exactuploadfixer.processing.ImageFormatProbe.Supported -> null
-            }
-        } catch (_: Exception) {
-            getApplication<Application>().getString(R.string.pick_error_unreadable)
+        // classify catches all stream failures internally and never throws.
+        val pickProblem = when (ImageFormat.classify(getApplication(), uri)) {
+            ImageFormatProbe.Unreadable ->
+                getApplication<Application>().getString(R.string.pick_error_unreadable)
+            ImageFormatProbe.Unsupported ->
+                getApplication<Application>().getString(R.string.pick_error_unsupported_format)
+            is ImageFormatProbe.Supported -> null
         }
 
         if (pickProblem != null) {

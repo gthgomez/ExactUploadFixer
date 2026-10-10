@@ -220,7 +220,7 @@ class MainViewModelTest {
         assertNull(vm.uiState.selectedUri)
         // Unsupported header must surface the FORMAT message, not a read error
         assertEquals(
-            context.getString(com.exactuploadfixer.R.string.pick_error_jpeg_only),
+            context.getString(com.exactuploadfixer.R.string.pick_error_unsupported_format),
             vm.uiState.pickError
         )
     }

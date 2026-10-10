@@ -12,7 +12,7 @@
     <string name="pick_footer_free">Fix any upload for free</string>
     <string name="pick_footer_pricing">Free to try. Lifetime purchase unlocks the preset library.</string>
     <string name="pick_privacy_link">Privacy policy</string>
-    <string name="pick_error_jpeg_only">Unsupported file. Select a JPEG (.jpg/.jpeg), PNG, or WebP image.</string>
+    <string name="pick_error_unsupported_format">Unsupported file. Select a JPEG (.jpg/.jpeg), PNG, or WebP image.</string>
     <string name="pick_error_unreadable">Couldn’t read that file. It may have been moved or access was revoked — select it again.</string>
 
     <!-- ── EditScreen ── -->
