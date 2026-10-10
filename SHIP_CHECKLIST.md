@@ -10,14 +10,14 @@ This is the release gate for the current V1 app.
 - [x] Amazon APK contains `assets/AppstoreAuthenticationKey.pem`
 - [x] Amazon APK signature verifies with `apksigner verify --verbose`
 - [x] Amazon APK zipalign verifies with `zipalign -c -p -v 4`
-- [ ] Unit tests pass
-- [ ] Instrumentation tests pass or are intentionally excluded with a reason
+- [x] Unit tests pass — 300 tests, 0 failures, both flavors (2026-10-09, JVM/Robolectric)
+- [ ] Instrumentation tests pass or are intentionally excluded with a reason — EXCLUDED for 2026-10 release prep: no emulator (no KVM) in dev environment; androidTest source compiles, device pass owed before production
 - [ ] Save and share flows are verified on-device
 - [ ] Billing values are real, not placeholders
 
 ## 1. Core app correctness
 
-- [ ] JPEG gate rejects PNG, WebP, HEIC, and renamed non-JPEG files
+- [x] Format gate rejects non-image files (incl. renamed) via magic bytes; accepts JPEG/PNG/WebP/HEIC input since v1.1 — GIF/other rejected with explicit copy (unit-tested)
 - [ ] Manual max-size flow works with no dimensions entered
 - [ ] One-sided dimensions are rejected clearly
 - [ ] Valid image always reaches Result screen or explicit failure
@@ -32,7 +32,7 @@ This is the release gate for the current V1 app.
 
 ## 3. Billing
 
-- [ ] Google Play SKU is verified
+- [ ] Google Play SKU is verified — BLOCKED on owner: product must exist in Play Console (see PLAY_RELEASE.md §5)
 - [x] Amazon RevenueCat public SDK key is set in `BillingConfig.kt`
 - [x] Amazon Appstore shared secret is set in RevenueCat dashboard, not source code
 - [x] Amazon entitlement ID is verified: `pro_access`
