@@ -97,4 +97,47 @@ class ImageFormatsTest {
         assertTrue(ImageFormat.WEBP.hasAlpha)
         assertFalse(ImageFormat.JPEG.hasAlpha)
     }
+
+    @Test
+    fun `classify distinguishes unreadable, unsupported, and supported`() {
+        // A nonexistent path: provider can't open it → Unreadable. This must
+        // surface as a decode problem (DecodeFailed upstream / a "couldn't
+        // read" pick error), never as "unsupported format".
+        val missing = android.net.Uri.fromFile(File(tmp.root, "does-not-exist.jpg"))
+        assertEquals(
+            ImageFormatProbe.Unreadable,
+            ImageFormat.classify(context(), missing)
+        )
+
+        // A real file with an UNUSABLE header: readable, but Unsupported.
+        val gif = File(tmp.root, "test.gif")
+        FileOutputStream(gif).use { it.write("GIF89a".toByteArray()); it.write(ByteArray(8)) }
+        assertEquals(
+            ImageFormatProbe.Unsupported,
+            ImageFormat.classify(context(), android.net.Uri.fromFile(gif))
+        )
+
+        // A real JPEG: Supported, carrying the detected format.
+        val jpg = File(tmp.root, "test.jpg")
+        FileOutputStream(jpg).use {
+            Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+                .compress(Bitmap.CompressFormat.JPEG, 90, it)
+        }
+        assertEquals(
+            ImageFormatProbe.Supported(ImageFormat.JPEG),
+            ImageFormat.classify(context(), android.net.Uri.fromFile(jpg))
+        )
+    }
+
+    @Test
+    fun `classify reports empty file as Unreadable not Unsupported`() {
+        // Opened successfully but zero bytes — nothing to decode. This is the
+        // revoked-grant/empty-cloud-stream shape: a read failure.
+        val empty = File(tmp.root, "empty.jpg")
+        empty.createNewFile()
+        assertEquals(
+            ImageFormatProbe.Unreadable,
+            ImageFormat.classify(context(), android.net.Uri.fromFile(empty))
+        )
+    }
 }

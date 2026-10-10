@@ -144,6 +144,53 @@ class ExactUploadFixerScreenshotTest {
     }
 
     @Test
+    fun editScreen_lightTheme_dimensionsEntered_fitPadMode_withPreviewImage() {
+        // NEW golden (2026-10-09 corrective pass): the inline preview card only
+        // renders when selectedUri != null — earlier goldens exercised the
+        // no-URI path only. This state carries a real 800×500 JPEG fixture so
+        // the aspect-aware frame (1:1 target, FIT_PAD) and the source-size
+        // meta row are exercised with an actual image attached.
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val fixture = java.io.File(context.cacheDir, "preview-fixture-800x500.jpg")
+        val src = android.graphics.Bitmap.createBitmap(800, 500, android.graphics.Bitmap.Config.ARGB_8888)
+        src.eraseColor(android.graphics.Color.rgb(120, 160, 210))
+        fixture.outputStream().use { out ->
+            src.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+        }
+        src.recycle()
+
+        val state = AppUiState(
+            screen = AppScreen.Edit,
+            selectedUri = android.net.Uri.fromFile(fixture),
+            sourceSizeBytes = fixture.length(),
+            maxSizeKbInput = "240",
+            widthInput = "600",
+            heightInput = "600",
+            fitMode = com.exactuploadfixer.domain.FitMode.FIT_PAD
+        )
+        composeTestRule.setContent {
+            ThemedContent(darkTheme = false) {
+                EditScreen(
+                    ui = state,
+                    onMaxSizeChanged = {},
+                    onWidthChanged = {},
+                    onHeightChanged = {},
+                    onFitModeChanged = {},
+                    onPresetSelected = {},
+                    onEntitlementRefreshRequested = {},
+                    onProcessClick = {},
+                    onBuyProClick = { true },
+                    onBack = {}
+                )
+            }
+        }
+        // Coil decodes asynchronously — captureRoboImage awaits compose idle
+        // before rendering; the aspect-aware frame appears either way.
+        composeTestRule.onRoot()
+            .captureRoboImage("src/test/snapshots/editScreen_lightTheme_dimensionsEntered_fitPadMode_withPreviewImage.png")
+    }
+
+    @Test
     fun editScreen_darkTheme_defaultState() {
         val state = AppUiState(screen = AppScreen.Edit)
         composeTestRule.setContent {

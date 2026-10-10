@@ -218,7 +218,29 @@ class MainViewModelTest {
         assertEquals(AppScreen.Pick, vm.uiState.screen)
         assertNotNull(vm.uiState.pickError)
         assertNull(vm.uiState.selectedUri)
+        // Unsupported header must surface the FORMAT message, not a read error
+        assertEquals(
+            context.getString(com.exactuploadfixer.R.string.pick_error_jpeg_only),
+            vm.uiState.pickError
+        )
     }
+
+    @Test
+    fun `onPhotoPicked reports an unreadable uri as a read failure not unsupported`() =
+        runTest(testDispatcher) {
+            val vm = buildVm()
+            // Nonexistent path: the provider cannot open the stream at all —
+            // the same shape as a revoked grant or dead cloud provider.
+            val missing = File(context.cacheDir, "vm_test_missing_" + System.nanoTime() + ".jpg")
+            vm.onPhotoPicked(Uri.fromFile(missing))
+
+            assertEquals(AppScreen.Pick, vm.uiState.screen)
+            assertNull(vm.uiState.selectedUri)
+            assertEquals(
+                context.getString(com.exactuploadfixer.R.string.pick_error_unreadable),
+                vm.uiState.pickError
+            )
+        }
 
     // ── onProcessClick — success path ─────────────────────────────────────────
 
@@ -755,5 +777,44 @@ class MainViewModelTest {
         billing.simulatePriceLoaded("$2.99")
         advanceUntilIdle()
         assertEquals("$2.99", vm.uiState.priceLabel)
+    }
+
+    // ── minBytes propagation (audit P0: preset minimum must reach the engine) ──
+
+    @Test
+    fun `passport preset minimum AND maximum byte bounds reach the engine`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val billing = FakeBillingGateway()
+            billing.simulatePurchase()
+            val vm = buildVm(engine = engine, billing = billing)
+            advanceUntilIdle()
+
+            vm.onPhotoPicked(buildJpegUri())
+            val preset = PRESETS.first { it.id == "passport_online_renewal" }
+            assertEquals(55_296L, preset.minBytes)
+            assertEquals(10_000_000L, preset.maxBytes)
+
+            vm.onPresetSelected(preset)
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            val constraints = engine.lastConstraints
+            assertNotNull(constraints)
+            assertEquals("preset minimum must NOT be dropped at the ViewModel", 55_296L, constraints!!.minBytes)
+            assertEquals(10_000_000L, constraints.maxBytes)
+        }
+
+    @Test
+    fun `manual input keeps minBytes at zero`() = runTest(testDispatcher) {
+        val engine = FakeUploadFixerEngine()
+        val vm = buildVm(engine = engine)
+        vm.onPhotoPicked(buildJpegUri())
+        vm.onMaxSizeChanged("200")
+        vm.onProcessClick()
+        advanceUntilIdle()
+
+        assertEquals(200_000L, engine.lastConstraints!!.maxBytes)
+        assertEquals(0L, engine.lastConstraints!!.minBytes)
     }
 }

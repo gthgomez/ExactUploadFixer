@@ -113,6 +113,7 @@ object JpegCompression {
 
         var highestOversizeQuality: Int? = null
         var lowestFitQuality: Int? = null
+        var highestBelowMinQuality: Int? = null
 
         for (quality in QUALITY_ANCHORS) {
             val probe = testQuality(quality) ?: break
@@ -127,31 +128,36 @@ object JpegCompression {
                 break
             } else if (probe.sizeBytes > maxBytes) {
                 highestOversizeQuality = probe.quality
+            } else {
+                // Below minBytes: not a fit, not oversize. Keep the HIGHEST
+                // below-min quality — that is the tight lower edge of the
+                // bracket a later binary search must resolve.
+                if (highestBelowMinQuality == null || probe.quality > highestBelowMinQuality!!) {
+                    highestBelowMinQuality = probe.quality
+                }
             }
-            // Below minBytes: not a fit, not oversize. Larger qualities may
-            // still enter the range, so keep probing the remaining anchors.
         }
 
         val fitQuality = lowestFitQuality
         val oversizeQuality = highestOversizeQuality
-        if (fitQuality != null && oversizeQuality != null) {
-            var low: Int = fitQuality
+        // Narrow-window case: an anchor overshot the max while the next landed
+        // under the min. The bracket to resolve is belowMin ↔ oversize.
+        val searchLow = fitQuality ?: highestBelowMinQuality
+        if (searchLow != null && oversizeQuality != null) {
+            var low: Int = searchLow
             var high: Int = oversizeQuality
+            while (high - low > 1) {
+                val mid = (low + high) / 2
+                val probe = testQuality(mid) ?: break
+                if (probe.sizeBytes < 0L) return SearchResult.EncodeFailure(iterations)
 
-            if (high - low > 1) {
-                while (high - low > 1) {
-                    val mid = (low + high) / 2
-                    val probe = testQuality(mid) ?: break
-                    if (probe.sizeBytes < 0L) return SearchResult.EncodeFailure(iterations)
-
-                    if (probe.sizeBytes > maxBytes) {
-                        high = mid
-                    } else {
-                        // Under max: quality too low for the boundary (either
-                        // already a fit or still below the minimum) — go higher
-                        if (probe.sizeBytes >= minBytes) updateBestFit(probe)
-                        low = mid
-                    }
+                if (probe.sizeBytes > maxBytes) {
+                    high = mid
+                } else {
+                    // Under max: quality too low for the boundary (either
+                    // already a fit or still below the minimum) — go higher
+                    if (probe.sizeBytes >= minBytes) updateBestFit(probe)
+                    low = mid
                 }
             }
         }
