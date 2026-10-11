@@ -752,6 +752,62 @@ class MainViewModelTest {
         assertFalse(vm.uiState.isProcessing)
     }
 
+    /**
+     * Engine whose every process() call emits one progress tick and then hangs
+     * forever. The progress tick proves the newer run is genuinely mid-flight
+     * and owned state must not be cleared by an unrelated job.
+     */
+    private class ProbeThenHangEngine : com.exactuploadfixer.domain.UploadFixerEngine {
+        var callCount = 0
+        override suspend fun process(sourceUri: Uri, constraints: FixConstraints) =
+            kotlinx.coroutines.flow.flow {
+                callCount++
+                emit(FixResult.Processing(quality = 90))
+                kotlinx.coroutines.awaitCancellation()
+            }
+    }
+
+    /**
+     * Regression guard for job-identity ownership of [AppUiState.isProcessing].
+     *
+     * A superseded run's cancellation cleanup is dispatched asynchronously. If a
+     * NEW run has already claimed the in-flight state by the time that stale
+     * cleanup executes, the cleanup must not clear the newer run's flags —
+     * otherwise the spinner disappears, the Fix button re-enables, and the
+     * re-entry guard is defeated while processing is still running.
+     */
+    @Test
+    fun `superseded job cleanup cannot clear a newer run's isProcessing`() =
+        runTest(testDispatcher) {
+            val engine = ProbeThenHangEngine()
+            val vm = buildVm(engine = engine)
+            vm.onPhotoPicked(buildJpegUri())
+            vm.onMaxSizeChanged("500")
+
+            // Run A starts, reports progress, then suspends (still processing).
+            vm.onProcessClick()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.isProcessing)
+
+            // Pick a new photo: A is cancelled, but its cleanup has not run yet.
+            vm.onPhotoPicked(buildJpegUri())
+            assertFalse(vm.uiState.isProcessing)
+
+            // Run B claims the in-flight state before A's cleanup is dispatched.
+            vm.onMaxSizeChanged("500")
+            vm.onProcessClick()
+            assertTrue(vm.uiState.isProcessing)
+
+            advanceUntilIdle()
+
+            // A's stale cleanup must NOT clear B's in-flight state.
+            assertTrue(
+                "a superseded job's cleanup must not clear the newer run's isProcessing",
+                vm.uiState.isProcessing
+            )
+            assertEquals(2, engine.callCount)
+        }
+
     // ── Billing pending / price state ──────────────────────────────────────────
 
     @Test

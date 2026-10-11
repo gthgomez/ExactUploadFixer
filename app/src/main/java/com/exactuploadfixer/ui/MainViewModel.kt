@@ -48,6 +48,14 @@ class MainViewModel(
     /** In-flight processing job — cancelled when the flow is left or reset. */
     private var processJob: kotlinx.coroutines.Job? = null
 
+    /**
+     * Monotonic id assigned to each processing run. A run may only publish
+     * results or run terminal cleanup while it is still the newest request.
+     * A superseded run's cancellation cleanup is dispatched asynchronously and
+     * must never clear the newer run's in-flight state.
+     */
+    private var processRequestId = 0L
+
     var uiState by mutableStateOf(
         AppUiState(
             screen = if (application.getSharedPreferences("exact_upload_fixer_prefs", Context.MODE_PRIVATE).getBoolean("onboarding_completed", false)) {
@@ -221,6 +229,12 @@ class MainViewModel(
             targetHeight = h,
             fitMode = uiState.fitMode
         )
+        // Claim a new request id up front: this run — and only this run — may
+        // publish state or run terminal cleanup. A superseded run's late
+        // cancellation cleanup (dispatched after this call returns) must not
+        // clear the newer run's isProcessing, or it would re-enable the Fix
+        // button mid-process and defeat the re-entry guard below.
+        val requestId = ++processRequestId
         uiState = uiState.copy(
             isProcessing = true,
             editError = null,
@@ -236,6 +250,9 @@ class MainViewModel(
             var testedProbeCount = 0f
             try {
                 engine.process(uri, constraints).collect { result ->
+                    // Defense in depth: cancellation already stops stale
+                    // emissions, but never let a superseded run write state.
+                    if (requestId != processRequestId) return@collect
                     uiState = when (result) {
                     is FixResult.Processing -> {
                         testedProbeCount += 1f
@@ -282,18 +299,22 @@ class MainViewModel(
             } catch (_: Exception) {
                 // Belt-and-braces: the engine contract says failures are emissions,
                 // but an unexpected throw must still become a recoverable failure.
-                uiState = uiState.copy(
-                    isProcessing = false,
-                    currentQuality = null,
-                    processingProgress = 1f,
-                    result = null,
-                    resultFailure = com.exactuploadfixer.domain.FixFailure.DecodeFailed,
-                    screen = AppScreen.Result
-                )
+                // Only publish if this run is still the owner.
+                if (requestId == processRequestId) {
+                    uiState = uiState.copy(
+                        isProcessing = false,
+                        currentQuality = null,
+                        processingProgress = 1f,
+                        result = null,
+                        resultFailure = com.exactuploadfixer.domain.FixFailure.DecodeFailed,
+                        screen = AppScreen.Result
+                    )
+                }
             } finally {
-                // If the job ended without a terminal emission (cancellation),
-                // make sure the UI never sticks in isProcessing.
-                if (uiState.isProcessing) {
+                // Only the owning run may clear in-flight state: a superseded
+                // run's cleanup must not clobber a newer run that has already
+                // claimed isProcessing = true.
+                if (requestId == processRequestId && uiState.isProcessing) {
                     uiState = uiState.copy(isProcessing = false, currentQuality = null)
                 }
             }
@@ -301,6 +322,9 @@ class MainViewModel(
     }
 
     private fun cancelProcessing() {
+        // Orphan any in-flight run first: its late cleanup must not touch the
+        // state of whatever run comes next.
+        processRequestId++
         processJob?.cancel()
         processJob = null
         if (uiState.isProcessing) {
