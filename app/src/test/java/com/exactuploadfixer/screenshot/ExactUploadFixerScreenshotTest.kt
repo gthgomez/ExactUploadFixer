@@ -1,8 +1,20 @@
 package com.exactuploadfixer.screenshot
 
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.test.core.app.ApplicationProvider
+import coil.Coil
+import coil.ImageLoader
+import coil.decode.DataSource
+import coil.intercept.Interceptor
+import coil.request.SuccessResult
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.exactuploadfixer.domain.FixFailure
 import com.exactuploadfixer.domain.PRESETS
@@ -13,6 +25,7 @@ import com.exactuploadfixer.ui.EditScreen
 import com.exactuploadfixer.ui.PickScreen
 import com.exactuploadfixer.ui.ResultScreen
 import com.exactuploadfixer.ui.theme.ExactUploadFixerTheme
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,8 +36,10 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Roborazzi screenshot tests for ExactUploadFixer.
  *
- * Run record:  ./gradlew :app:recordRoborazziGooglePlayDebug
- * Run verify:  ./gradlew :app:verifyRoborazziGooglePlayDebug
+ * Record:  ./gradlew :app:testGooglePlayDebugUnitTest --tests "com.exactuploadfixer.screenshot.*" -Proborazzi.test.record=true
+ * Verify:  ./gradlew :app:testGooglePlayDebugUnitTest --tests "com.exactuploadfixer.screenshot.*" -Proborazzi.test.verify=true
+ * (The Roborazzi Gradle plugin is not applied — see app/build.gradle.kts — so the
+ * `recordRoborazzi*`/`verifyRoborazzi*` convenience tasks do not exist.)
  *
  * Goldens are stored in src/test/snapshots/ and committed to version control.
  * Never use dynamicColorScheme() — it is non-reproducible on Robolectric.
@@ -36,6 +51,50 @@ class ExactUploadFixerScreenshotTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    /**
+     * Deterministic image-loading boundary for Robolectric screenshots.
+     *
+     * Coil's default loader fetches/decodes on background dispatchers, while
+     * `captureRoboImage` awaits COMPOSE idle only — so any AsyncImage preview
+     * races its decode and the golden flakes (this bit CI on PR #15; the race
+     * was already documented by PR #14). This interceptor is first in the chain
+     * and returns a SYNCHRONOUSLY decoded drawable, leaving no async hop for the
+     * capture to lose.
+     *
+     * It decodes the SAME bytes the default loader would (fixture file or in
+     * memory bytes), so the recorded pixels are unchanged: this is a
+     * determinism fix, not a pixel reset. Do NOT "fix" flakiness by
+     * re-recording goldens or weakening assertions.
+     */
+    @Before
+    fun installSynchronousImageLoader() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val synchronous = Interceptor { chain ->
+            val request = chain.request
+            val bitmap = when (val data = request.data) {
+                is Uri -> context.contentResolver.openInputStream(data)?.use {
+                    BitmapFactory.decodeStream(it)
+                }
+                is ByteArray -> BitmapFactory.decodeByteArray(data, 0, data.size)
+                else -> null
+            }
+            SuccessResult(
+                drawable = bitmap?.let { BitmapDrawable(context.resources, it) }
+                    ?: ColorDrawable(Color.TRANSPARENT),
+                request = request,
+                dataSource = DataSource.MEMORY,
+                memoryCacheKey = null,
+                diskCacheKey = null,
+                isSampled = false
+            )
+        }
+        Coil.setImageLoader(
+            ImageLoader.Builder(context)
+                .components { add(synchronous) }
+                .build()
+        )
+    }
 
     @Composable
     private fun ThemedContent(
