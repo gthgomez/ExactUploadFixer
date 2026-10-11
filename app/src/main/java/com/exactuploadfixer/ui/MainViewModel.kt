@@ -15,13 +15,19 @@ import com.exactuploadfixer.domain.FixConstraints
 import com.exactuploadfixer.domain.FixResult
 import com.exactuploadfixer.domain.Preset
 import com.exactuploadfixer.domain.UploadFixerEngine
+import com.exactuploadfixer.processing.ImageFormat
+import com.exactuploadfixer.processing.ImageFormatProbe
 import kotlinx.coroutines.launch
 
 /**
  * Single ViewModel for the whole app (3-screen linear flow).
  *
  * Isolation rules (ChatGPT Step 6):
- *   - Never imports anything from processing.*
+ *   - Never imports anything from processing.* EXCEPT ImageFormat/ImageFormatProbe:
+ *     pick-time classification must use the SAME probe the engine uses, so the
+ *     picker and engine can never disagree about a file (the earlier mirrored
+ *     local header check drifted — see PR #12 review). Engine internals
+ *     (ImageProcessor, compression) remain invisible.
  *   - Knows UploadFixerEngine (domain interface), not ImageProcessor (impl)
  *   - Knows BillingGateway (interface), not PlayBillingGateway (impl)
  *   - UI reads uiState; never calls engine or billing directly
@@ -41,6 +47,19 @@ class MainViewModel(
 
     /** In-flight processing job — cancelled when the flow is left or reset. */
     private var processJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Monotonic id assigned to each processing run. A run may only publish
+     * results or run terminal cleanup while it is still the newest request.
+     * A superseded run's cancellation cleanup is dispatched asynchronously and
+     * must never clear the newer run's in-flight state.
+     *
+     * Confined to `Dispatchers.Main`: every reader/writer is a UI callback or
+     * the `viewModelScope` collector (which runs in the launching Main context
+     * even though the engine's upstream work is on `flowOn(Dispatchers.IO)`),
+     * so a plain `Long` is race-free here.
+     */
+    private var processRequestId = 0L
 
     var uiState by mutableStateOf(
         AppUiState(
@@ -62,23 +81,6 @@ class MainViewModel(
         // Matches the engine's bounded search budget so UI progress advances steadily.
         const val PROCESSING_PROGRESS_STEPS = 48f
 
-        /** Magic-byte gate: JPEG SOI, PNG signature, RIFF/WEBP, ISO-BMFF HEIF brand. */
-        fun headerHasSupportedSignature(header: ByteArray, length: Int): Boolean {
-            if (length >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() &&
-                header[2] == 0xFF.toByte()
-            ) return true
-            val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-            if (length >= 8 && png.indices.all { header[it] == png[it] }) return true
-            if (length >= 12 &&
-                header[0] == 'R'.code.toByte() && header[8] == 'W'.code.toByte() &&
-                header[9] == 'E'.code.toByte() && header[10] == 'B'.code.toByte() &&
-                header[11] == 'P'.code.toByte()
-            ) return true
-            if (length >= 12 && String(header, 4, 4) == "ftyp") {
-                return String(header, 8, 4) in setOf("heic", "heix", "hevc", "hevx", "mif1", "msf1")
-            }
-            return false
-        }
     }
 
     init {
@@ -117,25 +119,22 @@ class MainViewModel(
         // A new pick invalidates any in-flight run for the previous photo
         cancelProcessing()
 
-        // Reject unsupported files before navigating away from PickScreen.
-        // Mirrors ImageFormat.isSupported without importing from processing.*:
-        // the FILE HEADER is the ground truth — a declared MIME type is never
+        // Reject bad files before navigating away from PickScreen, with the
+        // SAME classification the engine uses (one stream open): an
+        // unopenable/empty source (revoked grant, dead cloud provider) is a
+        // read failure, not a format problem — a declared MIME type is never
         // sufficient on its own (mislabeled files are common).
-        val supported = try {
-            contentResolver.openInputStream(uri)?.use { stream ->
-                val header = ByteArray(12)
-                var read = 0
-                while (read < header.size) {
-                    val n = stream.read(header, read, header.size - read)
-                    if (n < 0) break
-                    read += n
-                }
-                headerHasSupportedSignature(header, read)
-            } ?: false
-        } catch (_: Exception) { false }
+        // classify catches all stream failures internally and never throws.
+        val pickProblem = when (ImageFormat.classify(getApplication(), uri)) {
+            ImageFormatProbe.Unreadable ->
+                getApplication<Application>().getString(R.string.pick_error_unreadable)
+            ImageFormatProbe.Unsupported ->
+                getApplication<Application>().getString(R.string.pick_error_unsupported_format)
+            is ImageFormatProbe.Supported -> null
+        }
 
-        if (!supported) {
-            uiState = uiState.copy(pickError = getApplication<Application>().getString(R.string.pick_error_jpeg_only))
+        if (pickProblem != null) {
+            uiState = uiState.copy(pickError = pickProblem)
             return
         }
 
@@ -163,7 +162,9 @@ class MainViewModel(
     // ── Edit screen ──────────────────────────────────────────────────────────
 
     fun onMaxSizeChanged(value: String) {
-        val filtered = value.filter { it.isDigit() }.take(4)
+        // 8 digits: preset fills like "10000" (passport 10 MB ceiling) must
+        // survive editing — 4 digits truncated them to "1000".
+        val filtered = value.filter { it.isDigit() }.take(8)
         uiState = uiState.copy(maxSizeKbInput = filtered, selectedPreset = null, editError = null)
     }
 
@@ -202,9 +203,10 @@ class MainViewModel(
         if (uiState.isProcessing) return
         val uri = uiState.selectedUri ?: return
 
-        // Presets carry an exact, source-verified byte cap — use it directly so the
-        // KB field never round-trips the limit lossily (e.g. DV 240,000 bytes).
-        // Free-typed values are decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
+        // Presets carry exact, source-verified byte bounds — use them directly so
+        // the KB field never round-trips the limits lossily (e.g. DV 240,000
+        // bytes; passport renewal 55,296–10,000,000). Free-typed values are
+        // decimal KB: 1 KB = 1,000 bytes (see FixConstraints).
         val selectedPreset = uiState.selectedPreset
         val maxBytes = selectedPreset?.maxBytes
             ?: uiState.maxSizeKbInput.toLongOrNull()?.let { it * FixConstraints.BYTES_PER_KB }
@@ -212,6 +214,7 @@ class MainViewModel(
             uiState = uiState.copy(editError = "Enter a valid max file size in KB")
             return
         }
+        val minBytes = selectedPreset?.minBytes ?: 0L
 
         val w = uiState.widthInput.toIntOrNull()
         val h = uiState.heightInput.toIntOrNull()
@@ -226,10 +229,17 @@ class MainViewModel(
 
         val constraints = FixConstraints(
             maxBytes = maxBytes,
+            minBytes = minBytes,
             targetWidth = w,
             targetHeight = h,
             fitMode = uiState.fitMode
         )
+        // Claim a new request id up front: this run — and only this run — may
+        // publish state or run terminal cleanup. A superseded run's late
+        // cancellation cleanup (dispatched after this call returns) must not
+        // clear the newer run's isProcessing, or it would re-enable the Fix
+        // button mid-process and defeat the re-entry guard below.
+        val requestId = ++processRequestId
         uiState = uiState.copy(
             isProcessing = true,
             editError = null,
@@ -245,6 +255,9 @@ class MainViewModel(
             var testedProbeCount = 0f
             try {
                 engine.process(uri, constraints).collect { result ->
+                    // Defense in depth: cancellation already stops stale
+                    // emissions, but never let a superseded run write state.
+                    if (requestId != processRequestId) return@collect
                     uiState = when (result) {
                     is FixResult.Processing -> {
                         testedProbeCount += 1f
@@ -291,18 +304,22 @@ class MainViewModel(
             } catch (_: Exception) {
                 // Belt-and-braces: the engine contract says failures are emissions,
                 // but an unexpected throw must still become a recoverable failure.
-                uiState = uiState.copy(
-                    isProcessing = false,
-                    currentQuality = null,
-                    processingProgress = 1f,
-                    result = null,
-                    resultFailure = com.exactuploadfixer.domain.FixFailure.DecodeFailed,
-                    screen = AppScreen.Result
-                )
+                // Only publish if this run is still the owner.
+                if (requestId == processRequestId) {
+                    uiState = uiState.copy(
+                        isProcessing = false,
+                        currentQuality = null,
+                        processingProgress = 1f,
+                        result = null,
+                        resultFailure = com.exactuploadfixer.domain.FixFailure.DecodeFailed,
+                        screen = AppScreen.Result
+                    )
+                }
             } finally {
-                // If the job ended without a terminal emission (cancellation),
-                // make sure the UI never sticks in isProcessing.
-                if (uiState.isProcessing) {
+                // Only the owning run may clear in-flight state: a superseded
+                // run's cleanup must not clobber a newer run that has already
+                // claimed isProcessing = true.
+                if (requestId == processRequestId && uiState.isProcessing) {
                     uiState = uiState.copy(isProcessing = false, currentQuality = null)
                 }
             }
@@ -310,6 +327,9 @@ class MainViewModel(
     }
 
     private fun cancelProcessing() {
+        // Orphan any in-flight run first: its late cleanup must not touch the
+        // state of whatever run comes next.
+        processRequestId++
         processJob?.cancel()
         processJob = null
         if (uiState.isProcessing) {

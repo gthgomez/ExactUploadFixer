@@ -218,7 +218,29 @@ class MainViewModelTest {
         assertEquals(AppScreen.Pick, vm.uiState.screen)
         assertNotNull(vm.uiState.pickError)
         assertNull(vm.uiState.selectedUri)
+        // Unsupported header must surface the FORMAT message, not a read error
+        assertEquals(
+            context.getString(com.exactuploadfixer.R.string.pick_error_unsupported_format),
+            vm.uiState.pickError
+        )
     }
+
+    @Test
+    fun `onPhotoPicked reports an unreadable uri as a read failure not unsupported`() =
+        runTest(testDispatcher) {
+            val vm = buildVm()
+            // Nonexistent path: the provider cannot open the stream at all —
+            // the same shape as a revoked grant or dead cloud provider.
+            val missing = File(context.cacheDir, "vm_test_missing_" + System.nanoTime() + ".jpg")
+            vm.onPhotoPicked(Uri.fromFile(missing))
+
+            assertEquals(AppScreen.Pick, vm.uiState.screen)
+            assertNull(vm.uiState.selectedUri)
+            assertEquals(
+                context.getString(com.exactuploadfixer.R.string.pick_error_unreadable),
+                vm.uiState.pickError
+            )
+        }
 
     // ── onProcessClick — success path ─────────────────────────────────────────
 
@@ -730,6 +752,62 @@ class MainViewModelTest {
         assertFalse(vm.uiState.isProcessing)
     }
 
+    /**
+     * Engine whose every process() call emits one progress tick and then hangs
+     * forever. The progress tick proves the newer run is genuinely mid-flight
+     * and owned state must not be cleared by an unrelated job.
+     */
+    private class ProbeThenHangEngine : com.exactuploadfixer.domain.UploadFixerEngine {
+        var callCount = 0
+        override suspend fun process(sourceUri: Uri, constraints: FixConstraints) =
+            kotlinx.coroutines.flow.flow {
+                callCount++
+                emit(FixResult.Processing(quality = 90))
+                kotlinx.coroutines.awaitCancellation()
+            }
+    }
+
+    /**
+     * Regression guard for job-identity ownership of [AppUiState.isProcessing].
+     *
+     * A superseded run's cancellation cleanup is dispatched asynchronously. If a
+     * NEW run has already claimed the in-flight state by the time that stale
+     * cleanup executes, the cleanup must not clear the newer run's flags —
+     * otherwise the spinner disappears, the Fix button re-enables, and the
+     * re-entry guard is defeated while processing is still running.
+     */
+    @Test
+    fun `superseded job cleanup cannot clear a newer run's isProcessing`() =
+        runTest(testDispatcher) {
+            val engine = ProbeThenHangEngine()
+            val vm = buildVm(engine = engine)
+            vm.onPhotoPicked(buildJpegUri())
+            vm.onMaxSizeChanged("500")
+
+            // Run A starts, reports progress, then suspends (still processing).
+            vm.onProcessClick()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.isProcessing)
+
+            // Pick a new photo: A is cancelled, but its cleanup has not run yet.
+            vm.onPhotoPicked(buildJpegUri())
+            assertFalse(vm.uiState.isProcessing)
+
+            // Run B claims the in-flight state before A's cleanup is dispatched.
+            vm.onMaxSizeChanged("500")
+            vm.onProcessClick()
+            assertTrue(vm.uiState.isProcessing)
+
+            advanceUntilIdle()
+
+            // A's stale cleanup must NOT clear B's in-flight state.
+            assertTrue(
+                "a superseded job's cleanup must not clear the newer run's isProcessing",
+                vm.uiState.isProcessing
+            )
+            assertEquals(2, engine.callCount)
+        }
+
     // ── Billing pending / price state ──────────────────────────────────────────
 
     @Test
@@ -755,5 +833,44 @@ class MainViewModelTest {
         billing.simulatePriceLoaded("$2.99")
         advanceUntilIdle()
         assertEquals("$2.99", vm.uiState.priceLabel)
+    }
+
+    // ── minBytes propagation (audit P0: preset minimum must reach the engine) ──
+
+    @Test
+    fun `passport preset minimum AND maximum byte bounds reach the engine`() =
+        runTest(testDispatcher) {
+            val engine = FakeUploadFixerEngine()
+            val billing = FakeBillingGateway()
+            billing.simulatePurchase()
+            val vm = buildVm(engine = engine, billing = billing)
+            advanceUntilIdle()
+
+            vm.onPhotoPicked(buildJpegUri())
+            val preset = PRESETS.first { it.id == "passport_online_renewal" }
+            assertEquals(55_296L, preset.minBytes)
+            assertEquals(10_000_000L, preset.maxBytes)
+
+            vm.onPresetSelected(preset)
+            vm.onProcessClick()
+            advanceUntilIdle()
+
+            val constraints = engine.lastConstraints
+            assertNotNull(constraints)
+            assertEquals("preset minimum must NOT be dropped at the ViewModel", 55_296L, constraints!!.minBytes)
+            assertEquals(10_000_000L, constraints.maxBytes)
+        }
+
+    @Test
+    fun `manual input keeps minBytes at zero`() = runTest(testDispatcher) {
+        val engine = FakeUploadFixerEngine()
+        val vm = buildVm(engine = engine)
+        vm.onPhotoPicked(buildJpegUri())
+        vm.onMaxSizeChanged("200")
+        vm.onProcessClick()
+        advanceUntilIdle()
+
+        assertEquals(200_000L, engine.lastConstraints!!.maxBytes)
+        assertEquals(0L, engine.lastConstraints!!.minBytes)
     }
 }
