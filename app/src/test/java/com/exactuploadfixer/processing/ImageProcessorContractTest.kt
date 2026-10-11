@@ -155,12 +155,17 @@ class ImageProcessorContractTest {
 
     @Test
     fun noDimensions_outputDecodesToSourceDimensionsAndRespectsMax() = runBlocking {
-        val maxBytes = 200_000L
+        // Budget generous enough that the highest quality fits, so the run is a
+        // true Success at the SOURCE geometry (no downscale fallback): the test
+        // name must be the assertion, not just "<= maxBytes".
+        val maxBytes = 2_000_000L
         val constraints = FixConstraints(maxBytes = maxBytes)
         val result = processor.process(Uri.fromFile(writeJpeg("plain_src", 1000, 750)), constraints).terminal()
 
-        assertTrue("expected Success/Degraded, got $result", result.isSuccess)
+        assertTrue("expected Success, got $result", result is FixResult.Success)
         val img = image(result)
+        assertEquals("no-dimensions output must keep the source width", 1000, img.width)
+        assertEquals("no-dimensions output must keep the source height", 750, img.height)
         assertTrue("output ${img.fileSizeBytes} must be <= maxBytes $maxBytes", img.fileSizeBytes <= maxBytes)
         assertDecodesToReported(result)
     }

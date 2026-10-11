@@ -53,6 +53,11 @@ class MainViewModel(
      * results or run terminal cleanup while it is still the newest request.
      * A superseded run's cancellation cleanup is dispatched asynchronously and
      * must never clear the newer run's in-flight state.
+     *
+     * Confined to `Dispatchers.Main`: every reader/writer is a UI callback or
+     * the `viewModelScope` collector (which runs in the launching Main context
+     * even though the engine's upstream work is on `flowOn(Dispatchers.IO)`),
+     * so a plain `Long` is race-free here.
      */
     private var processRequestId = 0L
 
