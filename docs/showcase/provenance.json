@@ -1,0 +1,19 @@
+{
+  "source_commit": "b102ab367ce2f8686d6553d0686e53072d5ddd18",
+  "inspected_at": "2026-10-30",
+  "kind": "existing UI test snapshots; not a fresh device run",
+  "files": [
+    {
+      "path": "app/src/test/snapshots/pickScreen_lightTheme_defaultState.png",
+      "sha256": "2024b5a4a4d987c0a97a7c917a7d0ef40a068415ad5e113b22a5646fc3d8f7fc"
+    },
+    {
+      "path": "app/src/test/snapshots/editScreen_lightTheme_dimensionsEntered_cropMode.png",
+      "sha256": "ea73c2b683c9aa3b26dca79ae1677fab3e6be8b06d8b7e0f14832e05c06f4911"
+    },
+    {
+      "path": "app/src/test/snapshots/editScreen_lightTheme_dimensionsEntered_fitPadMode_withPreviewImage.png",
+      "sha256": "9f1fdfbe3ac6c1b622fe48bcc8273d633cd9f073af0e5194fa6640b1245447cb"
+    }
+  ]
+}
